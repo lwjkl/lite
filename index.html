@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Image Indexing & Search</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+        color: #333;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+      }
+
+      .layout {
+        display: flex;
+        gap: 20px; /* space between form and preview */
+        margin: 40px 0;
+      }
+
+      .container {
+        background: #ffffff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        padding: 25px;
+        width: 400px;
+      }
+
+      .preview-panel {
+        background: #ffffff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+        width: 400px;
+        text-align: center;
+      }
+
+      .preview-panel h3 {
+        margin-top: 0;
+        font-size: 1.1rem;
+        color: #222;
+        border-bottom: 1px solid #e0e0e0;
+        padding-bottom: 6px;
+      }
+
+      .preview-panel img {
+        max-width: 100%;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-top: 10px;
+      }
+
+      h2 {
+        margin-top: 0;
+        color: #222;
+        border-bottom: 1px solid #e0e0e0;
+        padding-bottom: 6px;
+        font-size: 1.2rem;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+        color: #444;
+      }
+
+      input[type="text"],
+      input[type="file"],
+      input[type="number"] {
+        width: 100%;
+        padding: 8px 10px;
+        margin-bottom: 15px;
+        border: 1px solid #bbb;
+        border-radius: 4px;
+        background-color: #fff;
+        color: #333;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+
+      button {
+        width: 100%;
+        background-color: #333;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 10px;
+        font-size: 15px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      button:hover {
+        background-color: #555;
+      }
+
+      p {
+        font-size: 13px;
+        margin-top: 10px;
+        color: #555;
+      }
+
+      hr {
+        border: none;
+        border-top: 1px solid #e0e0e0;
+        margin: 25px 0;
+      }
+
+      .checkbox-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .checkbox-group label {
+        margin-left: 6px;
+        font-weight: normal;
+        color: #333;
+      }
+
+      #resultImages {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 10px;
+        margin-top: 15px;
+      }
+
+      #resultImages div {
+        aspect-ratio: 1 / 1;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        overflow: hidden;
+        background: #f9f9f9;
+      }
+
+      #resultImages img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      #toggleDetailsBtn {
+        margin-top: 10px;
+        background-color: #333;
+      }
+
+      #toggleDetailsBtn:hover {
+        background-color: #555;
+      }
+
+      #detailsTable {
+        display: none;
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+
+      #detailsTable th,
+      #detailsTable td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        font-size: 14px;
+        text-align: center;
+      }
+
+      #detailsTable th {
+        background-color: #f0f0f0;
+        font-weight: bold;
+      }
+
+      .index-status {
+        background-color: #f8f8f8;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: none;
+      }
+
+      .index-status h3 {
+        margin-top: 0;
+        font-size: 1rem;
+        color: #333;
+        border-bottom: 1px solid #e0e0e0;
+        padding-bottom: 5px;
+      }
+
+      .index-status ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .index-status li {
+        font-size: 0.9rem;
+        margin: 4px 0;
+        color: #555;
+      }
+
+      .index-status strong {
+        color: #222;
+      }
+
+      .footer-note {
+        position: fixed;
+        bottom: 10px;
+        right: 20px;
+        font-size: 0.85rem;
+        color: #777;
+        background: transparent;
+        padding: 5px 10px;
+        border-radius: 4px;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <div class="container">
+        <div class="index-status">
+          <h3>FAISS Index Status</h3>
+          <p id="statusMessage">Loading status...</p>
+          <ul>
+            <li>
+              <strong>Image Directory:</strong>
+              <span id="statusImageDir">-</span>
+            </li>
+            <li>
+              <strong>Total Vectors:</strong>
+              <span id="statusTotalVectors">-</span>
+            </li>
+            <li>
+              <strong>Unique IDs:</strong> <span id="statusUniqueIds">-</span>
+            </li>
+            <li>
+              <strong>Duplicates:</strong>
+              <span id="statusHasDuplicates">-</span>
+            </li>
+          </ul>
+        </div>
+
+        <h2>Image Indexing</h2>
+        <label for="indexPath">Image Directory Path:</label>
+        <input type="text" id="indexPath" placeholder="/path/to/images" />
+        <button id="indexButton">Index Images</button>
+        <p id="indexStatus"></p>
+
+        <div style="margin-top: 10px">
+          <div
+            id="progressBarContainer"
+            style="
+              width: 100%;
+              background-color: #ddd;
+              border-radius: 5px;
+              display: none;
+            "
+          >
+            <div
+              id="progressBar"
+              style="
+                width: 0%;
+                height: 20px;
+                background-color: #4caf50;
+                border-radius: 5px;
+              "
+            ></div>
+          </div>
+          <p id="progressText"></p>
+        </div>
+
+        <hr />
+
+        <h2>Search Similar Images</h2>
+        <label for="queryImage">Upload Query Image:</label>
+        <input type="file" id="queryImage" accept="image/*" />
+
+        <label for="threshold">Distance Threshold (optional):</label>
+        <input
+          type="number"
+          id="threshold"
+          placeholder="e.g. 0.5"
+          step="0.01"
+        />
+
+        <div class="checkbox-group">
+          <input type="checkbox" id="saveJson" />
+          <label for="saveJson">Download results as JSON</label>
+        </div>
+
+        <button id="searchButton">Search</button>
+        <p id="searchStatus"></p>
+      </div>
+
+      <div class="preview-panel">
+        <h3>Query Image Preview</h3>
+        <img
+          id="queryPreview"
+          src="#"
+          alt="Query Image"
+          style="display: none"
+        />
+
+        <div id="searchResults">
+          <h4>Similar Images</h4>
+          <div id="resultImages"></div>
+          <button id="toggleDetailsBtn" style="display: none">
+            Show Details
+          </button>
+          <table id="detailsTable">
+            <thead>
+              <tr>
+                <th>Image ID</th>
+                <th>Distance</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const apiBase = "..";
+
+      async function fetchIndexStatus() {
+        const statusMessage = document.getElementById("statusMessage");
+        const imageDir = document.getElementById("statusImageDir");
+        const totalVectors = document.getElementById("statusTotalVectors");
+        const uniqueIds = document.getElementById("statusUniqueIds");
+        const hasDuplicates = document.getElementById("statusHasDuplicates");
+
+        try {
+          const response = await fetch(`${apiBase}/index-status`);
+          const data = await response.json();
+          statusMessage.innerText = data.message || "No status message.";
+          imageDir.innerText = data.image_directory || "None";
+          totalVectors.innerText = data.total_vectors;
+          uniqueIds.innerText = data.unique_ids;
+          hasDuplicates.innerText = data.has_duplicates ? "Yes" : "No";
+        } catch (err) {
+          console.error("Failed to fetch index status:", err);
+          statusMessage.innerText = "Error fetching status.";
+          imageDir.innerText = "-";
+          totalVectors.innerText = "-";
+          uniqueIds.innerText = "-";
+          hasDuplicates.innerText = "-";
+        }
+      }
+
+      fetchIndexStatus();
+
+      document
+        .getElementById("indexButton")
+        .addEventListener("click", async function () {
+          const path = document.getElementById("indexPath").value;
+          const status = document.getElementById("indexStatus");
+          const progressBarContainer = document.getElementById(
+            "progressBarContainer"
+          );
+          const progressBar = document.getElementById("progressBar");
+          const progressText = document.getElementById("progressText");
+
+          if (!path) {
+            status.innerText = "Please enter a directory path.";
+            return;
+          }
+
+          progressBarContainer.style.display = "block";
+          progressBar.style.width = "0%";
+          progressText.innerText = "Starting indexing...";
+
+          try {
+            const evtSource = new EventSource(
+              `${apiBase}/index-images?image_directory=${encodeURIComponent(
+                path
+              )}`
+            );
+            evtSource.onmessage = function (e) {
+              if (e.data === "done") {
+                progressBar.style.width = "100%";
+                progressText.innerText = "Indexing complete!";
+                evtSource.close();
+                fetchIndexStatus();
+              } else {
+                progressBar.style.width = `${e.data}%`;
+                progressText.innerText = `Indexing... ${e.data}%`;
+              }
+            };
+
+            evtSource.onerror = function (err) {
+              console.error("EventSource failed:", err);
+              status.innerText = "Error: Could not receive progress updates.";
+              evtSource.close();
+            };
+          } catch (err) {
+            status.innerText = "Error: " + err;
+          }
+        });
+
+      document
+        .getElementById("searchButton")
+        .addEventListener("click", async function () {
+          const fileInput = document.getElementById("queryImage");
+          const thresholdInput = document.getElementById("threshold").value;
+          const status = document.getElementById("searchStatus");
+          const resultImagesDiv = document.getElementById("resultImages");
+          const toggleBtn = document.getElementById("toggleDetailsBtn");
+          const detailsTable = document.getElementById("detailsTable");
+          const tableBody = detailsTable.querySelector("tbody");
+          const saveJson = document.getElementById("saveJson").checked;
+
+          if (fileInput.files.length === 0) {
+            status.innerText = "Please upload an image to search.";
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append("file", fileInput.files[0]);
+          formData.append("num_results", 8);
+          formData.append("download_ids", false);
+          if (thresholdInput) {
+            formData.append("distance_threshold", thresholdInput);
+          }
+
+          status.innerText = "Searching...";
+          resultImagesDiv.innerHTML = "";
+          tableBody.innerHTML = "";
+          toggleBtn.style.display = "none";
+          detailsTable.style.display = "none";
+
+          try {
+            const response = await fetch(`${apiBase}/search-similar`, {
+              method: "POST",
+              body: formData,
+            });
+
+            const data = await response.json();
+
+            if (!data.results || !Array.isArray(data.results)) {
+              status.innerText = "Error: Unexpected response from server.";
+              return;
+            }
+
+            // If user requested JSON download, trigger it
+            if (saveJson) {
+              const jsonBlob = new Blob([JSON.stringify(data, null, 2)], {
+                type: "application/json",
+              });
+              const url = URL.createObjectURL(jsonBlob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "similar_results.json";
+              a.click();
+              URL.revokeObjectURL(url);
+              status.innerText = "Results downloaded as JSON.";
+            }
+
+            // Always render results visually
+            data.results.forEach((item) => {
+              const imgContainer = document.createElement("div");
+              const img = document.createElement("img");
+              img.src = `${apiBase}/image/${item.image_id}`;
+              img.alt = `ID: ${item.image_id}`;
+              imgContainer.appendChild(img);
+              resultImagesDiv.appendChild(imgContainer);
+
+              const row = document.createElement("tr");
+              row.innerHTML = `
+              <td>${item.image_id}</td>
+              <td>${item.distance.toFixed(4)}</td>
+              <td><a href="${apiBase}/image/${
+                item.image_id
+              }" target="_blank">View</a></td>
+            `;
+              tableBody.appendChild(row);
+            });
+
+            toggleBtn.style.display = "inline-block";
+            status.innerText = `Found ${data.count_within_threshold} images within threshold (showing top 8).`;
+          } catch (err) {
+            status.innerText = "Error: " + err;
+          }
+        });
+
+      document
+        .getElementById("toggleDetailsBtn")
+        .addEventListener("click", function () {
+          const detailsTable = document.getElementById("detailsTable");
+          if (detailsTable.style.display === "none") {
+            detailsTable.style.display = "table";
+            this.innerText = "Hide Details";
+          } else {
+            detailsTable.style.display = "none";
+            this.innerText = "Show Details";
+          }
+        });
+
+      document
+        .getElementById("queryImage")
+        .addEventListener("change", function (event) {
+          const file = event.target.files[0];
+          const preview = document.getElementById("queryPreview");
+
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              preview.src = e.target.result;
+              preview.style.display = "block";
+            };
+            reader.readAsDataURL(file);
+          } else {
+            preview.style.display = "none";
+          }
+        });
+    </script>
+
+    <footer class="footer-note">Experimental purposes only</footer>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+numpy
+fastapi
+uvicorn
+opencv-python
+requests
+torch
+torchvision
+faiss-cpu
+pydantic-settings
