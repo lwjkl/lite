@@ -127,7 +127,7 @@
 
       #resultImages {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        grid-template-columns: repeat(3, 1fr);
         gap: 10px;
         margin-top: 15px;
       }
@@ -144,35 +144,12 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
+        cursor: pointer;
+        transition: transform 0.2s ease;
       }
 
-      #toggleDetailsBtn {
-        margin-top: 10px;
-        background-color: #333;
-      }
-
-      #toggleDetailsBtn:hover {
-        background-color: #555;
-      }
-
-      #detailsTable {
-        display: none;
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-      }
-
-      #detailsTable th,
-      #detailsTable td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        font-size: 14px;
-        text-align: center;
-      }
-
-      #detailsTable th {
-        background-color: #f0f0f0;
-        font-weight: bold;
+      #resultImages img:hover {
+        transform: scale(1.05);
       }
 
       .index-status {
@@ -208,6 +185,12 @@
         color: #222;
       }
 
+      #statusImageDir {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        display: block;
+      }
+
       .footer-note {
         position: fixed;
         bottom: 10px;
@@ -219,13 +202,27 @@
         border-radius: 4px;
         pointer-events: none;
       }
+
+      #statusIndicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background-color: #f0ad4e;
+        border-radius: 50%;
+        margin-right: 6px;
+        vertical-align: middle;
+        transition: background-color 0.3s ease;
+      }
     </style>
   </head>
   <body>
     <div class="layout">
       <div class="container">
         <div class="index-status">
-          <h3>FAISS Index Status</h3>
+          <h3>
+            <span id="statusIndicator" title="Loading status..."></span>
+            FAISS Index Status
+          </h3>
           <p id="statusMessage">Loading status...</p>
           <ul>
             <li>
@@ -310,19 +307,6 @@
         <div id="searchResults">
           <h4>Similar Images</h4>
           <div id="resultImages"></div>
-          <button id="toggleDetailsBtn" style="display: none">
-            Show Details
-          </button>
-          <table id="detailsTable">
-            <thead>
-              <tr>
-                <th>Image ID</th>
-                <th>Distance</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
         </div>
       </div>
     </div>
@@ -336,6 +320,7 @@
         const totalVectors = document.getElementById("statusTotalVectors");
         const uniqueIds = document.getElementById("statusUniqueIds");
         const hasDuplicates = document.getElementById("statusHasDuplicates");
+        const statusIndicator = document.getElementById("statusIndicator");
 
         try {
           const response = await fetch(`${apiBase}/index-status`);
@@ -345,6 +330,13 @@
           totalVectors.innerText = data.total_vectors;
           uniqueIds.innerText = data.unique_ids;
           hasDuplicates.innerText = data.has_duplicates ? "Yes" : "No";
+          if (data.image_directory) {
+            statusIndicator.style.backgroundColor = "#5cb85c"; // Green
+            statusIndicator.title = "FAISS index loaded successfully";
+          } else {
+            statusIndicator.style.backgroundColor = "#d9534f"; // Red
+            statusIndicator.title = "FAISS index not loaded";
+          }
         } catch (err) {
           console.error("Failed to fetch index status:", err);
           statusMessage.innerText = "Error fetching status.";
@@ -352,6 +344,8 @@
           totalVectors.innerText = "-";
           uniqueIds.innerText = "-";
           hasDuplicates.innerText = "-";
+          statusIndicator.style.backgroundColor = "#d9534f"; // Red
+          statusIndicator.title = "Error fetching index status";
         }
       }
 
@@ -412,9 +406,6 @@
           const thresholdInput = document.getElementById("threshold").value;
           const status = document.getElementById("searchStatus");
           const resultImagesDiv = document.getElementById("resultImages");
-          const toggleBtn = document.getElementById("toggleDetailsBtn");
-          const detailsTable = document.getElementById("detailsTable");
-          const tableBody = detailsTable.querySelector("tbody");
           const saveJson = document.getElementById("saveJson").checked;
 
           if (fileInput.files.length === 0) {
@@ -424,7 +415,7 @@
 
           const formData = new FormData();
           formData.append("file", fileInput.files[0]);
-          formData.append("num_results", 8);
+          formData.append("num_results", 9); // changed to 9
           formData.append("download_ids", false);
           if (thresholdInput) {
             formData.append("distance_threshold", thresholdInput);
@@ -432,9 +423,6 @@
 
           status.innerText = "Searching...";
           resultImagesDiv.innerHTML = "";
-          tableBody.innerHTML = "";
-          toggleBtn.style.display = "none";
-          detailsTable.style.display = "none";
 
           try {
             const response = await fetch(`${apiBase}/search-similar`, {
@@ -463,43 +451,23 @@
               status.innerText = "Results downloaded as JSON.";
             }
 
-            // Always render results visually
+            // Render results visually
             data.results.forEach((item) => {
               const imgContainer = document.createElement("div");
               const img = document.createElement("img");
               img.src = `${apiBase}/image/${item.image_id}`;
               img.alt = `ID: ${item.image_id}`;
+              img.title = `ID: ${item.image_id}`;
+              img.onclick = () => {
+                window.open(`${apiBase}/image/${item.image_id}`, "_blank");
+              };
               imgContainer.appendChild(img);
               resultImagesDiv.appendChild(imgContainer);
-
-              const row = document.createElement("tr");
-              row.innerHTML = `
-              <td>${item.image_id}</td>
-              <td>${item.distance.toFixed(4)}</td>
-              <td><a href="${apiBase}/image/${
-                item.image_id
-              }" target="_blank">View</a></td>
-            `;
-              tableBody.appendChild(row);
             });
 
-            toggleBtn.style.display = "inline-block";
-            status.innerText = `Found ${data.count_within_threshold} images within threshold (showing top 8).`;
+            status.innerText = `Found ${data.count_within_threshold} images within threshold (showing top 9).`;
           } catch (err) {
             status.innerText = "Error: " + err;
-          }
-        });
-
-      document
-        .getElementById("toggleDetailsBtn")
-        .addEventListener("click", function () {
-          const detailsTable = document.getElementById("detailsTable");
-          if (detailsTable.style.display === "none") {
-            detailsTable.style.display = "table";
-            this.innerText = "Hide Details";
-          } else {
-            detailsTable.style.display = "none";
-            this.innerText = "Show Details";
           }
         });
 
