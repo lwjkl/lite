@@ -109,8 +109,14 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     if faiss_index:
-        faiss_index.save(settings.index_path)
-        print("FAISS index saved.")
+        image_dir = getattr(faiss_index, "image_directory", None)
+        if image_dir:
+            faiss_index.save_index_and_meta(settings.index_path, image_dir)
+            print(f"FAISS index and metadata saved ({settings.index_path})")
+        else:
+            # fallback if no image_directory is set
+            faiss_index.save(settings.index_path)
+            print(f"FAISS index saved without metadata ({settings.index_path})")
 
 
 def get_image_from_directory(image_path: str, wildcard: str = "*.JPG"):
@@ -162,7 +168,7 @@ def index_images_stream(image_directory: str, wildcard: str, batch_size: int):
         vectors, ids = [], []
         for path in batch:
             try:
-                uid = int(os.path.splitext(os.path.basename(path))[0])
+                uid = os.path.basename(path)
                 img = cv2.imread(path)
                 if img is None:
                     continue
@@ -182,7 +188,7 @@ def index_images_stream(image_directory: str, wildcard: str, batch_size: int):
             faiss_index.insert(vectors, ids)
 
     # Save the index and metadata at the end
-    faiss_index.save_index_and_meta(settings.INDEX_PATH, image_directory)
+    faiss_index.save_index_and_meta(settings.index_path, image_directory)
     yield "data: done\n\n"
 
 
@@ -209,7 +215,6 @@ async def search_similar(
 
     count_within_threshold = len(filtered_results)
 
-    # Default: limit results for display
     num_display = request.num_results or 8
     results = [
         {"image_id": img_id, "distance": dist}
@@ -224,16 +229,14 @@ async def search_similar(
 
 
 @app.get("/image/{image_id}")
-async def get_image(image_id: int):
+async def get_image(image_id: str):
     """
     Serve an image by its ID.
     """
     if not faiss_index.image_directory:
         raise HTTPException(status_code=500, detail="Image directory not loaded.")
     
-    image_id_str = str(image_id)
-    image_id = f"{image_id_str[:7]}_{image_id_str[7:]}"
-    image_path = os.path.join(faiss_index.image_directory, f"{image_id}.JPG")
+    image_path = os.path.join(faiss_index.image_directory, f"{image_id}")
     
     if not os.path.exists(image_path):
         raise HTTPException(status_code=404, detail="Image not found.")
