@@ -1,17 +1,18 @@
 import cv2
+import json
 import numpy
 import os
 import time
 import torch
 import tempfile
-import json
-from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, BackgroundTasks, Form, Query
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, BackgroundTasks, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from glob import glob
-from pydantic import BaseModel
 
 from index import FaissIndex
+from models import IndexRequest, SearchRequest
 from utils import get_embeder, embed
 from settings import settings
 
@@ -28,32 +29,41 @@ DOWNLOAD_DIR = "downloads"
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 
+# === Startup / Shutdown ===
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global faiss_index, resnet_model, device_global
+
+    print("Initializing FAISS index and ResNet model...")
+    device_global = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    faiss_index = FaissIndex(
+        d=settings.faiss_dim,
+        M=settings.faiss_m,
+        index_path=settings.index_path
+    )
+    resnet_model = get_embeder(device_global)
+    print("Initialization complete.")
+
+    yield
+
+    if faiss_index:
+        image_dir = getattr(faiss_index, "image_directory", None)
+        if image_dir:
+            faiss_index.save_index_and_meta(settings.index_path, image_dir)
+            print(f"FAISS index and metadata saved ({settings.index_path})")
+        else:
+            # fallback if no image_directory is set
+            faiss_index.save(settings.index_path)
+            print(f"FAISS index saved without metadata ({settings.index_path})")
+
+
 # === FastAPI App ===
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 app.mount(
     "/ui", 
     StaticFiles(directory=current_dir, html=True), 
     name="frontend"
 )
-
-
-# === Data Models ===
-class IndexRequest(BaseModel):
-    image_directory: str
-    wildcard: str = "*.JPG"
-    batch_size: int = 64
-
-
-class SearchRequest:
-    def __init__(
-        self,
-        num_results: int = Form(8),
-        download_ids: bool = Form(False),
-        distance_threshold: float = Form(None)
-    ):
-        self.num_results = num_results
-        self.download_ids = download_ids
-        self.distance_threshold = distance_threshold
 
 
 # === Helpers ===
@@ -80,7 +90,6 @@ def send_json_file(data: dict, filename: str, background_tasks: BackgroundTasks)
     tmp_file.write(json.dumps(data, indent=2))
     tmp_file.close()
 
-    # Schedule deletion of the temp file
     background_tasks.add_task(os.unlink, tmp_file.name)
 
     return FileResponse(
@@ -88,35 +97,6 @@ def send_json_file(data: dict, filename: str, background_tasks: BackgroundTasks)
         media_type="application/json",
         filename=filename
     )
-
-
-# === Startup / Shutdown ===
-@app.on_event("startup")
-async def startup_event():
-    global faiss_index, resnet_model, device_global
-
-    print("Initializing FAISS index and ResNet model...")
-    device_global = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    faiss_index = FaissIndex(
-        d=settings.faiss_dim,
-        M=settings.faiss_m,
-        index_path=settings.index_path
-    )
-    resnet_model = get_embeder(device_global)
-    print("Initialization complete.")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    if faiss_index:
-        image_dir = getattr(faiss_index, "image_directory", None)
-        if image_dir:
-            faiss_index.save_index_and_meta(settings.index_path, image_dir)
-            print(f"FAISS index and metadata saved ({settings.index_path})")
-        else:
-            # fallback if no image_directory is set
-            faiss_index.save(settings.index_path)
-            print(f"FAISS index saved without metadata ({settings.index_path})")
 
 
 def get_image_from_directory(image_path: str, wildcard: str = "*.JPG"):
@@ -187,9 +167,22 @@ def index_images_stream(image_directory: str, wildcard: str, batch_size: int):
         if vectors:
             faiss_index.insert(vectors, ids)
 
-    # Save the index and metadata at the end
     faiss_index.save_index_and_meta(settings.index_path, image_directory)
     yield "data: done\n\n"
+
+
+def read_and_embed_image(file: UploadFile):
+    """
+    Read an UploadFile and return (RGB image, vector embedding).
+    """
+    contents = file.file.read()
+    np_img = numpy.frombuffer(contents, numpy.uint8)
+    img = cv2.imdecode(np_img, cv2.IMREAD_COLOR)
+    if img is None:
+        raise HTTPException(status_code=400, detail="Invalid image.")
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    vector = embed(img, resnet_model, device_global)
+    return img, vector
 
 
 @app.post("/search-similar")
@@ -200,14 +193,7 @@ async def search_similar(
     """
     Search for similar images.
     """
-    contents = await file.read()
-    np_img = numpy.frombuffer(contents, numpy.uint8)
-    img = cv2.imdecode(np_img, cv2.IMREAD_COLOR)
-    if img is None:
-        raise HTTPException(status_code=400, detail="Invalid image.")
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    
-    vector = embed(img, resnet_model, device_global)
+    img, vector = read_and_embed_image(file=file)
 
     # Always search with top_n=500 internally
     top_n = 500
@@ -215,7 +201,7 @@ async def search_similar(
 
     count_within_threshold = len(filtered_results)
 
-    num_display = request.num_results or 8
+    num_display = request.num_results
     results = [
         {"image_id": img_id, "distance": dist}
         for img_id, dist in filtered_results[:num_display]
@@ -251,15 +237,7 @@ async def index_status():
     if not faiss_index:
         raise HTTPException(status_code=500, detail="FAISS index is not initialized.")
 
-    total_vectors, unique_ids, has_duplicates = faiss_index.get_index_status()
-
-    return {
-        "message": faiss_index.status_message,
-        "image_directory": faiss_index.image_directory,
-        "total_vectors": total_vectors,
-        "unique_ids": unique_ids,
-        "has_duplicates": has_duplicates
-    }
+    return faiss_index.get_status()
 
 
 @app.get("/")
