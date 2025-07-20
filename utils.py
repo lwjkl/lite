@@ -41,15 +41,9 @@ def embed(
     image = torch.from_numpy(image).permute(2, 0, 1)
     transformed = transform(image).unsqueeze(0).to(device)
 
-    # print(transformed.shape)
-
-    # if "cuda" in device:
-    #     model.to(device)
-
     with torch.no_grad():
         logit = model(transformed)
 
-    # print(logit.shape)
     embedding = logit.cpu().numpy()
 
     return embedding[0]
