@@ -6,10 +6,11 @@ import os
 
 class FaissIndex:
     def __init__(self, d: int = 2048, M: int = 32, index_path: str = None):
-        self.status_message = ""
-        self._str_to_int = {}  # maps string IDs to int IDs
-        self._int_to_str = {}  # maps int IDs back to string IDs
-        self._next_id = 1      # start int IDs from 1
+        self.status_message = "Uninitialized FAISS index."
+        self.image_directory = None
+        self._str_to_int = {}
+        self._int_to_str = {}
+        self._next_id = 1
 
         if index_path is None or not os.path.exists(index_path):
             print(f"Creating new FAISS index (d={d}, M={M})...")
@@ -17,24 +18,32 @@ class FaissIndex:
             self.index = faiss.IndexIDMap(base_index)
             self.status_message = "New FAISS index created (empty)."
         else:
-            self.index: faiss.IndexHNSWFlat = faiss.read_index(index_path)
-            print(f"Loaded FAISS index successfully from {index_path}!")
-            self.status_message = f"FAISS index loaded from {index_path}."
+            try:
+                self.index: faiss.IndexHNSWFlat = faiss.read_index(index_path)
+                print(f"Loaded FAISS index successfully from {index_path}!")
+                self.status_message = f"FAISS index loaded from {index_path}."
 
-            # Load metadata (image directory + ID mappings)
-            meta_path = index_path + ".meta.json"
-            if os.path.exists(meta_path):
-                with open(meta_path, "r") as meta_file:
-                    meta = json.load(meta_file)
-                    self.image_directory = meta.get("image_directory")
-                    self._str_to_int = meta.get("str_to_int", {})
-                    self._int_to_str = {
-                        int(k): v for k, v in meta.get("int_to_str", {}).items()
-                    }
-                    self._next_id = max(self._int_to_str.keys(), default=0) + 1
-                print(f"Loaded metadata: image_directory={self.image_directory}")
-            else:
-                print(f"No metadata found for {index_path}.")
+                # Load metadata (image directory + ID mappings)
+                meta_path = index_path + ".meta.json"
+                if os.path.exists(meta_path):
+                    with open(meta_path, "r") as meta_file:
+                        meta = json.load(meta_file)
+                        self.image_directory = meta.get("image_directory")
+                        print(self.image_directory)
+                        self._str_to_int = meta.get("str_to_int", {})
+                        self._int_to_str = {
+                            int(k): v for k, v in meta.get("int_to_str", {}).items()
+                        }
+                        self._next_id = max(self._int_to_str.keys(), default=0) + 1
+                    print(f"Loaded metadata: image_directory={self.image_directory}")
+                else:
+                    print(f"No metadata found for {index_path}.")
+            except Exception as exp:
+                print(f"Failed to load FAISS index: {exp}")
+                base_index = faiss.IndexHNSWFlat(d, M)
+                self.index = faiss.IndexIDMap(base_index)
+                self.status_message = f"Failed to load FAISS index. Created new empty index. Error: {exp}"
+
 
     def _get_or_create_int_id(self, string_id: str) -> int:
         """
@@ -101,6 +110,13 @@ class FaissIndex:
             results.append((string_id, float(dist)))
         return results
 
+    def save(self, index_path: str):
+        """
+        Save the index to a local directory.
+        """
+        faiss.write_index(self.index, index_path)
+        print(f"Successfully saved index to {index_path}.")
+
     def save_index_and_meta(self, index_path: str, image_dir: str):
         """
         Save the index and associated metadata (directory + ID mappings).
@@ -119,7 +135,21 @@ class FaissIndex:
         print(f"Metadata saved to {meta_path}.")
         self.image_directory = image_dir
 
-    def get_index_status(self):
+    # def get_index_status(self):
+    #     """
+    #     Get the status of index.
+    #     """
+    #     total_vectors = self.index.ntotal
+    #     print("Total vectors in FAISS:", total_vectors)
+
+    #     ids = faiss.vector_to_array(self.index.id_map)
+    #     num_ids = len(ids)
+    #     num_uids = len(set(ids))
+    #     is_duplicates = num_ids != num_uids
+
+    #     return total_vectors, num_uids, is_duplicates
+    
+    def get_status(self) -> dict:
         """
         Get the status of index.
         """
@@ -131,4 +161,11 @@ class FaissIndex:
         num_uids = len(set(ids))
         is_duplicates = num_ids != num_uids
 
-        return total_vectors, num_uids, is_duplicates
+        return {
+            "message": self.status_message,
+            "image_directory": self.image_directory,
+            "total_vectors": total_vectors,
+            "unique_ids": num_uids,
+            "has_duplicates": is_duplicates
+        }
+
