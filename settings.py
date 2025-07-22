@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     batch_size: int = 64
 
     class Config:
-        env_file = ".env"  # optional: load from a .env file
+        env_file = ".env"
         env_file_encoding = "utf-8"
 
-# Create a singleton settings instance
+
 settings = Settings()

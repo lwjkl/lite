@@ -6,7 +6,15 @@ import time
 import torch
 import tempfile
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, BackgroundTasks, Query
+from fastapi import (
+    FastAPI,
+    UploadFile,
+    File,
+    Depends,
+    HTTPException,
+    BackgroundTasks,
+    Query,
+)
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from glob import glob
@@ -37,9 +45,7 @@ async def lifespan(app: FastAPI):
     print("Initializing FAISS index and ResNet model...")
     device_global = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     faiss_index = FaissIndex(
-        d=settings.faiss_dim,
-        M=settings.faiss_m,
-        index_path=settings.index_path
+        d=settings.faiss_dim, M=settings.faiss_m, index_path=settings.index_path
     )
     model = get_embeder(device_global)
     print("Initialization complete.")
@@ -59,11 +65,7 @@ async def lifespan(app: FastAPI):
 
 # === FastAPI App ===
 app = FastAPI(lifespan=lifespan)
-app.mount(
-    "/ui", 
-    StaticFiles(directory=current_dir, html=True), 
-    name="frontend"
-)
+app.mount("/ui", StaticFiles(directory=current_dir, html=True), name="frontend")
 
 
 # === Helpers ===
@@ -72,14 +74,18 @@ def save_ids_file(image_ids: list[int]) -> str:
     Save matched image IDs to a temp file and return file path.
     """
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".txt", dir=DOWNLOAD_DIR)
+    tmp_file = tempfile.NamedTemporaryFile(
+        delete=False, suffix=".txt", dir=DOWNLOAD_DIR
+    )
     with open(tmp_file.name, "w") as f:
         for img_id in image_ids:
             f.write(f"{img_id}\n")
     return tmp_file.name
 
 
-def send_json_file(data: dict, filename: str, background_tasks: BackgroundTasks) -> FileResponse:
+def send_json_file(
+    data: dict, filename: str, background_tasks: BackgroundTasks
+) -> FileResponse:
     """
     Save data as a temporary JSON file and return as FileResponse.
     """
@@ -92,11 +98,7 @@ def send_json_file(data: dict, filename: str, background_tasks: BackgroundTasks)
 
     background_tasks.add_task(os.unlink, tmp_file.name)
 
-    return FileResponse(
-        tmp_file.name,
-        media_type="application/json",
-        filename=filename
-    )
+    return FileResponse(tmp_file.name, media_type="application/json", filename=filename)
 
 
 def get_image_from_directory(image_path: str, wildcard: str = "*.JPG"):
@@ -109,14 +111,14 @@ def get_image_from_directory(image_path: str, wildcard: str = "*.JPG"):
 async def index_images_get(
     image_directory: str = Query(..., description="Path to image directory"),
     wildcard: str = Query("*.JPG", description="File pattern"),
-    batch_size: int = Query(64, description="Batch size for indexing")
+    batch_size: int = Query(64, description="Batch size for indexing"),
 ):
     """
     Index images (GET version with query params for browser/EventSource).
     """
     return StreamingResponse(
         index_images_stream(image_directory, wildcard, batch_size),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
     )
 
 
@@ -129,7 +131,7 @@ async def index_images_post(request: IndexRequest):
         index_images_stream(
             request.image_directory, request.wildcard, request.batch_size
         ),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
     )
 
 
@@ -144,7 +146,9 @@ def index_images_stream(image_directory: str, wildcard: str, batch_size: int):
         return
 
     processed_images = 0
-    for batch in [paths[i:i + batch_size] for i in range(0, total_images, batch_size)]:
+    for batch in [
+        paths[i : i + batch_size] for i in range(0, total_images, batch_size)
+    ]:
         vectors, ids = [], []
         for path in batch:
             try:
@@ -196,8 +200,10 @@ async def search_similar(
     img, vector = read_and_embed_image(file=file)
 
     # Always search with top_n=500 internally
-    top_n = 500
-    filtered_results = faiss_index.search(vector, k=top_n, distance_threshold=request.distance_threshold)
+    top_n = 1000
+    filtered_results = faiss_index.search(
+        vector, k=top_n, distance_threshold=request.distance_threshold
+    )
 
     count_within_threshold = len(filtered_results)
 
@@ -210,7 +216,7 @@ async def search_similar(
     return {
         "count_within_threshold": count_within_threshold,
         "results": results,
-        "full_results": filtered_results
+        "full_results": filtered_results,
     }
 
 
@@ -221,9 +227,9 @@ async def get_image(image_id: str):
     """
     if not faiss_index.image_directory:
         raise HTTPException(status_code=500, detail="Image directory not loaded.")
-    
+
     image_path = os.path.join(faiss_index.image_directory, f"{image_id}")
-    
+
     if not os.path.exists(image_path):
         raise HTTPException(status_code=404, detail="Image not found.")
     return FileResponse(image_path)

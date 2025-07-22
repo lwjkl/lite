@@ -13,7 +13,7 @@ class SearchRequest:
         self,
         num_results: int = Form(9),
         download_ids: bool = Form(False),
-        distance_threshold: float = Form(None)
+        distance_threshold: float = Form(None),
     ):
         self.num_results = num_results
         self.download_ids = download_ids

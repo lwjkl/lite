@@ -42,8 +42,9 @@ class FaissIndex:
                 print(f"Failed to load FAISS index: {exp}")
                 base_index = faiss.IndexHNSWFlat(d, M)
                 self.index = faiss.IndexIDMap(base_index)
-                self.status_message = f"Failed to load FAISS index. Created new empty index. Error: {exp}"
-
+                self.status_message = (
+                    f"Failed to load FAISS index. Created new empty index. Error: {exp}"
+                )
 
     def _get_or_create_int_id(self, string_id: str) -> int:
         """
@@ -85,10 +86,12 @@ class FaissIndex:
         if filtered_vectors:
             self.index.add_with_ids(
                 numpy.array(filtered_vectors, dtype=numpy.float32),
-                numpy.array(filtered_ids, dtype=numpy.int64)
+                numpy.array(filtered_ids, dtype=numpy.int64),
             )
 
-    def search(self, query_vector: numpy.ndarray, k: int = 5, distance_threshold: float = None):
+    def search(
+        self, query_vector: numpy.ndarray, k: int = 5, distance_threshold: float = None
+    ):
         """
         Search vectors and return (string_id, distance).
         """
@@ -130,25 +133,14 @@ class FaissIndex:
                 {
                     "image_directory": image_dir,
                     "str_to_int": self._str_to_int,
-                    "int_to_str": self._int_to_str
-                }, meta_file, indent=4)
+                    "int_to_str": self._int_to_str,
+                },
+                meta_file,
+                indent=4,
+            )
         print(f"Metadata saved to {meta_path}.")
         self.image_directory = image_dir
 
-    # def get_index_status(self):
-    #     """
-    #     Get the status of index.
-    #     """
-    #     total_vectors = self.index.ntotal
-    #     print("Total vectors in FAISS:", total_vectors)
-
-    #     ids = faiss.vector_to_array(self.index.id_map)
-    #     num_ids = len(ids)
-    #     num_uids = len(set(ids))
-    #     is_duplicates = num_ids != num_uids
-
-    #     return total_vectors, num_uids, is_duplicates
-    
     def get_status(self) -> dict:
         """
         Get the status of index.
@@ -166,6 +158,5 @@ class FaissIndex:
             "image_directory": self.image_directory,
             "total_vectors": total_vectors,
             "unique_ids": num_uids,
-            "has_duplicates": is_duplicates
+            "has_duplicates": is_duplicates,
         }
-

@@ -25,7 +25,7 @@ def embed(
 
 
 def get_embeder(device="cpu"):
-    model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14')
+    model = torch.hub.load("facebookresearch/dinov2", "dinov2_vits14")
     model = model.to(device)
     model.eval()
     return model
