@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     index_path: str = "index.faiss"
-    faiss_dim: int = 2048
+    faiss_dim: int = 384
     faiss_m: int = 32
     batch_size: int = 64
 
