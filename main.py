@@ -19,7 +19,7 @@ from settings import settings
 
 # === Globals ===
 faiss_index = None
-resnet_model = None
+model = None
 device_global = None
 IMAGE_DIR = "images"
 DOWNLOAD_DIR = "downloads"
@@ -32,7 +32,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 # === Startup / Shutdown ===
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global faiss_index, resnet_model, device_global
+    global faiss_index, model, device_global
 
     print("Initializing FAISS index and ResNet model...")
     device_global = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI):
         M=settings.faiss_m,
         index_path=settings.index_path
     )
-    resnet_model = get_embeder(device_global)
+    model = get_embeder(device_global)
     print("Initialization complete.")
 
     yield
@@ -153,7 +153,7 @@ def index_images_stream(image_directory: str, wildcard: str, batch_size: int):
                 if img is None:
                     continue
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                vector = embed(img, resnet_model, device_global)
+                vector = embed(img, model, device_global)
                 vectors.append(vector)
                 ids.append(uid)
             except Exception as e:
@@ -181,7 +181,7 @@ def read_and_embed_image(file: UploadFile):
     if img is None:
         raise HTTPException(status_code=400, detail="Invalid image.")
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    vector = embed(img, resnet_model, device_global)
+    vector = embed(img, model, device_global)
     return img, vector
 
 
