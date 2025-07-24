@@ -40,20 +40,15 @@
         padding-bottom: 8px;
       }
 
-      /* .preview-panel img {
+      .preview-panel img {
         max-width: 100%;
+        max-height: 300px;
         border: 1px solid #ddd;
         border-radius: 4px;
         margin-top: 10px;
+        margin-bottom: 20px;
+        object-fit: contain;
       }
-
-      h2 {
-        margin-top: 0;
-        color: #222;
-        border-bottom: 1px solid #e0e0e0;
-        padding-bottom: 6px;
-        font-size: 1.2rem;
-      } */
 
       label {
         display: block;
@@ -71,9 +66,8 @@
         border: 1px solid #ccc;
         border-radius: 6px;
         background-color: #fafafa;
-        /* color: #333; */
         font-size: 15px;
-        /* box-sizing: border-box; */
+        box-sizing: border-box;
         transition: border-color 0.3s ease;
       }
       
@@ -289,6 +283,14 @@
           step="0.01"
         />
 
+        <label for="topK">Top-K Results to Search (optional):</label>
+        <input
+          type="number"
+          id="topK"
+          placeholder="e.g. 1000"
+          step="1"
+        />
+
         <div class="checkbox-group">
           <input type="checkbox" id="saveJson" />
           <label for="saveJson">Download results as JSON</label>
@@ -310,6 +312,10 @@
         <div id="searchResults">
           <h3>Similar Images</h4>
           <div id="resultImages"></div>
+
+          <button id="downloadZipButton" style="margin-top: 10px; display: none;">
+            Download Matching Images as ZIP
+          </button>
         </div>
       </div>
     </div>
@@ -407,6 +413,7 @@
         .addEventListener("click", async function () {
           const fileInput = document.getElementById("queryImage");
           const thresholdInput = document.getElementById("threshold").value;
+          const topKInput = document.getElementById("topK").value;
           const status = document.getElementById("searchStatus");
           const resultImagesDiv = document.getElementById("resultImages");
           const saveJson = document.getElementById("saveJson").checked;
@@ -419,9 +426,14 @@
           const formData = new FormData();
           formData.append("file", fileInput.files[0]);
           formData.append("num_results", 9);
-          formData.append("download_ids", false);
+          formData.append("download_ids", saveJson);
+          
           if (thresholdInput) {
             formData.append("distance_threshold", thresholdInput);
+          }
+
+          if (topKInput) {
+            formData.append("top_k", topKInput);
           }
 
           status.innerText = "Searching...";
@@ -452,8 +464,11 @@
               URL.revokeObjectURL(url);
               status.innerText = "Results downloaded as JSON.";
             }
+            
+            window.lastMatchedImageIds = data.full_results?.map((r) => r[0]) || [];
 
             data.results.forEach((item) => {
+              document.getElementById("downloadZipButton").style.display = "block";
               const imgContainer = document.createElement("div");
               const img = document.createElement("img");
               img.src = `${apiBase}/image/${item.image_id}`;
@@ -487,6 +502,43 @@
             reader.readAsDataURL(file);
           } else {
             preview.style.display = "none";
+          }
+        });
+
+      
+      document
+        .getElementById("downloadZipButton")
+        .addEventListener("click", async function () {
+          const ids = window.lastMatchedImageIds || [];
+          if (ids.length === 0) {
+            alert("No matching images to download.");
+            return;
+          }
+
+          try {
+            const response = await fetch(`${apiBase}/download-zip`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ image_ids: ids }),
+            });
+
+            if (!response.ok) {
+              throw new Error("Failed to download ZIP");
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "matched_images.zip";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+          } catch (err) {
+            alert("Download failed: " + err.message);
           }
         });
     </script>

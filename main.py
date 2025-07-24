@@ -1,10 +1,12 @@
 import cv2
+import io
 import json
 import numpy
 import os
 import time
 import torch
 import tempfile
+import zipfile
 from contextlib import asynccontextmanager
 from fastapi import (
     FastAPI,
@@ -20,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from glob import glob
 
 from index import FaissIndex
-from models import IndexRequest, SearchRequest
+from models import IndexRequest, SearchRequest, DownloadZipRequest
 from utils import get_embeder, embed
 from settings import settings
 
@@ -192,17 +194,16 @@ def read_and_embed_image(file: UploadFile):
 @app.post("/search-similar")
 async def search_similar(
     file: UploadFile = File(...),
-    request: SearchRequest = Depends(SearchRequest),
+    request: SearchRequest = Depends(SearchRequest.as_form),
 ):
     """
     Search for similar images.
     """
     img, vector = read_and_embed_image(file=file)
 
-    # Always search with top_n=500 internally
-    top_n = 1000
+    top_k = request.top_k or 500
     filtered_results = faiss_index.search(
-        vector, k=top_n, distance_threshold=request.distance_threshold
+        vector, k=top_k, distance_threshold=request.distance_threshold
     )
 
     count_within_threshold = len(filtered_results)
@@ -218,6 +219,18 @@ async def search_similar(
         "results": results,
         "full_results": filtered_results,
     }
+
+
+@app.post("/download-zip")
+async def download_zip(req: DownloadZipRequest):
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as zipf:
+        for image_id in req.image_ids:
+            image_path = os.path.join(faiss_index.image_directory, image_id)
+            if os.path.exists(image_path):
+                zipf.write(image_path, arcname=os.path.basename(image_path))
+    buffer.seek(0)
+    return StreamingResponse(buffer, media_type="application/zip", headers={"Content-Disposition": "attachment; filename=matched_images.zip"})
 
 
 @app.get("/image/{image_id}")
