@@ -1,4 +1,4 @@
--index-url https://download.pytorch.org/whl/cpu
+--index-url https://download.pytorch.org/whl/cpu
 
 numpy==2.2.6
 fastapi==0.116.1
@@ -11,4 +11,3 @@ faiss-cpu==1.11.0.post1
 pydantic==2.11.7
 pydantic-settings==2.10.1
 python-multipart==0.0.20
-xformers==0.0.31.post1
