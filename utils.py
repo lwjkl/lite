@@ -10,7 +10,7 @@ def embed(
         [
             T.Resize(size=(224, 224)),
             T.ToDtype(torch.float32, scale=True),
-            T.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+            T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ]
     )
     image = torch.from_numpy(image).permute(2, 0, 1)
