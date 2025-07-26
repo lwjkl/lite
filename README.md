@@ -34,7 +34,7 @@ python main.py
 
 ## usage (ui)
 
-To access the UI, open your browser and go to `localhost:1234/ui`.
+To access the UI, open your browser and go to `/ui`.
 
 To index a directory, provide the full path to the image directory in the input field and click **Index Image**. Indexing may take some time depending on the size of your dataset.
 
