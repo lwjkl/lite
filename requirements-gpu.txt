@@ -12,3 +12,4 @@ python-multipart==0.0.20
 xformers==0.0.31.post1
 torch==2.7.1+cu118
 torchvision==0.22.1+cu118
+tqdm==4.67.1

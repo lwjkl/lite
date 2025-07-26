@@ -11,3 +11,4 @@ pydantic-settings==2.10.1
 python-multipart==0.0.20
 torch==2.7.1+cpu
 torchvision==0.22.1+cpu
+tqdm==4.67.1
