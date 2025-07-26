@@ -1,7 +1,0 @@
-__pycache__/
-*.py[codz]
-*$py.class
-index.faiss*
-.venv/
-.git
-.gitignore
