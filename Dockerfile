@@ -17,4 +17,4 @@ RUN python3 -m pip install --upgrade pip && \
 
 COPY . .
 
-CMD ["sleep", "infinity"]
+CMD ["python", "main.py"]
