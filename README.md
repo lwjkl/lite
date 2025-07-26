@@ -16,13 +16,6 @@ You can start the application by running (default on port 1234):
 python main.py
 ```
 
-or with Docker:
-
-```bash
-docker build -t image-similarity-app .
-docker run -p 1234:1234 image-similarity-app
-```
-
 ## usage
 
 To access the UI, open your browser and go to `localhost:1234/ui`.
