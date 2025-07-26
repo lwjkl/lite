@@ -16,7 +16,7 @@ You can start the application by running (default on port 1234):
 python main.py
 ```
 
-## usage
+## usage (ui)
 
 To access the UI, open your browser and go to `localhost:1234/ui`.
 
@@ -27,7 +27,35 @@ Once indexing is complete, you can start searching for similar images by uploadi
 - distance threshold - limits results to those within a certain distance.
 - top-k result to search -  the number of top results to return, sorted by distance.
 
-Downloading the Results,
+Downloading the results,
 
 - To download results as JSON, check the Download Results as JSON box before searching.
 - To download raw images, after clicking the Search button, the top 9 most similar images will be displayed on the right panel. An option will be available below them to download the images as a ZIP file.
+
+## usage (cli)
+
+You can run the application in cli too.
+
+To index a directory:
+
+```bash
+python cli.py index --dir /path/to/your/image/directory
+```
+
+To check index status:
+
+```bash
+python cli.py status
+```
+
+To query for similar image:
+
+```bash
+python cli.py search --image /path/to/query/image.jpg
+```
+
+To query with threshold and top_k override:
+
+```bash
+python cli.py search --image /path/to/query/image.jpg --threshold 1000 --top_k 100
+```
