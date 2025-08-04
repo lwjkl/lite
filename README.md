@@ -13,7 +13,7 @@ Once the index has been created, you will notice two additional files appear in 
 
 These correspond to the serialized FAISS index (saved locally for persistence) and the metadata for the image directory, which encodes mappings between `image_name ↔ id`.
 
-Two optional parameters are available when performing a search — you can adjust them ased on your preferences:
+Two optional parameters are available when performing a search — you can adjust them based on your preferences:
 
 - distance threshold - limits results to those within a certain distance.
 - top-k result to search -  the number of top results to return, sorted by distance.
