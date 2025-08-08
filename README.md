@@ -1,6 +1,6 @@
 # lite
 
-lite is a simple image similarity search application built with [FAISS](https://github.com/facebookresearch/faiss) and [FastAPI](https://github.com/fastapi/fastapi), using the [Dinov2](https://github.com/facebookresearch/dinov2) ViT-S/14 distilled model to generate image embeddings. The main purpose of the application is to quickly sort through a large pool of images for data labeling. The current focus is on running the application on a CPU-only instance, particularly for the ann index and feature extraction model.
+lite is a lightweight image similarity search application built with [FAISS](https://github.com/facebookresearch/faiss) and [FastAPI](https://github.com/fastapi/fastapi), using the [Dinov2](https://github.com/facebookresearch/dinov2) ViT-S/14 distilled model to generate image embeddings. The main purpose of the application is to quickly sort through a large pool of images for data labeling. The current focus is on running the application on a CPU-only instance, particularly for the ann index and feature extraction model.
 
 ## behaviour
 
