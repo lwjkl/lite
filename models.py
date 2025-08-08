@@ -1,6 +1,7 @@
 from fastapi import Form
 from pydantic import BaseModel
 from typing import Optional, List
+from typing_extensions import TypedDict
 
 
 class IndexRequest(BaseModel):
@@ -36,3 +37,8 @@ class SearchRequest(BaseModel):
 
 class DownloadZipRequest(BaseModel):
     image_ids: List[str]
+
+
+class RootResponse(TypedDict):
+    message: str
+

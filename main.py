@@ -1,6 +1,5 @@
 import cv2
 import io
-import json
 import numpy
 import os
 import time
@@ -14,7 +13,6 @@ from fastapi import (
     File,
     Depends,
     HTTPException,
-    BackgroundTasks,
     Query,
 )
 from fastapi.responses import FileResponse, StreamingResponse
@@ -22,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from glob import glob
 
 from index import FaissIndex
-from models import IndexRequest, SearchRequest, DownloadZipRequest
+from models import IndexRequest, SearchRequest, DownloadZipRequest, RootResponse
 from utils import get_embeder, embed
 from settings import settings
 
@@ -85,24 +83,6 @@ def save_ids_file(image_ids: list[int]) -> str:
     return tmp_file.name
 
 
-def send_json_file(
-    data: dict, filename: str, background_tasks: BackgroundTasks
-) -> FileResponse:
-    """
-    Save data as a temporary JSON file and return as FileResponse.
-    """
-    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-    tmp_file = tempfile.NamedTemporaryFile(
-        mode="w", delete=False, suffix=".json", dir=DOWNLOAD_DIR
-    )
-    tmp_file.write(json.dumps(data, indent=2))
-    tmp_file.close()
-
-    background_tasks.add_task(os.unlink, tmp_file.name)
-
-    return FileResponse(tmp_file.name, media_type="application/json", filename=filename)
-
-
 def get_image_from_directory(image_path: str, wildcard: str = "*.JPG"):
     images = glob(f"{image_path}/{wildcard}")
     return images
@@ -114,7 +94,7 @@ async def index_images_get(
     image_directory: str = Query(..., description="Path to image directory"),
     wildcard: str = Query("*.JPG", description="File pattern"),
     batch_size: int = Query(64, description="Batch size for indexing"),
-):
+) -> StreamingResponse:
     """
     Index images (GET version with query params for browser/EventSource).
     """
@@ -125,7 +105,7 @@ async def index_images_get(
 
 
 @app.post("/index-images")
-async def index_images_post(request: IndexRequest):
+async def index_images_post(request: IndexRequest) -> StreamingResponse:
     """
     Index images (POST version with JSON body for API calls).
     """
@@ -195,7 +175,7 @@ def read_and_embed_image(file: UploadFile):
 async def search_similar(
     file: UploadFile = File(...),
     request: SearchRequest = Depends(SearchRequest.as_form),
-):
+) -> dict:
     """
     Search for similar images.
     """
@@ -206,23 +186,20 @@ async def search_similar(
         vector, k=top_k, distance_threshold=request.distance_threshold
     )
 
-    count_within_threshold = len(filtered_results)
-
-    num_display = request.num_results
     results = [
         {"image_id": img_id, "distance": dist}
-        for img_id, dist in filtered_results[:num_display]
+        for img_id, dist in filtered_results[:request.num_results]
     ]
 
     return {
-        "count_within_threshold": count_within_threshold,
+        "count_within_threshold": len(filtered_results),
         "results": results,
         "full_results": filtered_results,
     }
 
 
 @app.post("/download-zip")
-async def download_zip(req: DownloadZipRequest):
+async def download_zip(req: DownloadZipRequest) -> StreamingResponse:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as zipf:
         for image_id in req.image_ids:
@@ -234,7 +211,7 @@ async def download_zip(req: DownloadZipRequest):
 
 
 @app.get("/image/{image_id}")
-async def get_image(image_id: str):
+async def get_image(image_id: str) -> FileResponse:
     """
     Serve an image by its ID.
     """
@@ -249,7 +226,7 @@ async def get_image(image_id: str):
 
 
 @app.get("/index-status")
-async def index_status():
+async def index_status() -> dict:
     """
     Return current FAISS index status.
     """
@@ -260,7 +237,7 @@ async def index_status():
 
 
 @app.get("/")
-async def root():
+async def root() -> RootResponse:
     print("Local Image Similarity Service")
     return {"message": "Local Image Similarity Service"}
 

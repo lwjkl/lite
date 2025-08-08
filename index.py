@@ -5,7 +5,7 @@ import os
 
 
 class FaissIndex:
-    def __init__(self, d: int = 2048, M: int = 32, index_path: str = None):
+    def __init__(self, d: int = 384, M: int = 32, index_path: str = None):
         self.status_message = "Uninitialized FAISS index."
         self.image_directory = None
         self._str_to_int = {}
