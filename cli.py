@@ -35,7 +35,7 @@ def index_images(image_dir):
     pbar.close()
 
 
-def search_and_download(image_path, num_results=10, top_k=500, threshold=None):
+def search_and_download(image_path, num_results=9, top_k=500, threshold=None):
     print("Searching for similar images...")
 
     with open(image_path, "rb") as f:
@@ -97,6 +97,7 @@ def main():
 
     parser_search = subparsers.add_parser("search", help="Search with a query image and download results as ZIP")
     parser_search.add_argument("--image", required=True, help="Path to query image")
+    parser_search.add_argument("--num_results", type=int, default=9, help="Useless at the moment")
     parser_search.add_argument("--top_k", type=int, default=500, help="Top K to search in index")
     parser_search.add_argument("--threshold", type=float, help="Distance threshold")
 
