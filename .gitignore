@@ -3,4 +3,4 @@ __pycache__/
 *$py.class
 index.faiss*
 .venv/
-app.log*
+api.log*
