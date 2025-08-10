@@ -5,6 +5,7 @@ import numpy
 import os
 import time
 import torch
+import warnings
 import zipfile
 from glob import glob
 from contextlib import asynccontextmanager
@@ -12,26 +13,29 @@ from contextlib import asynccontextmanager
 from starlette.applications import Starlette
 from starlette.responses import (
     FileResponse,
+    HTMLResponse,
     JSONResponse,
-    StreamingResponse
+    StreamingResponse,
 )
-from starlette.staticfiles import StaticFiles
 from starlette.routing import Route
 
 from index import FaissIndex
-from utils import get_embeder, embed
+from logger import logger
+from plot import plot_embeddings
 from settings import settings
+from utils import get_embeder, embed
 
 
 # === Globals ===
 IMAGE_DIR = "images"
 DOWNLOAD_DIR = "downloads"
+BASE = os.path.dirname(os.path.abspath(__file__))
 
 
 # --- Lifespan handler ---
 @asynccontextmanager
 async def lifespan(app):
-    print("Initializing FAISS index and ResNet model...")
+    logger.info("Initializing FAISS index and ResNet model...")
     device_global = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     faiss_index = FaissIndex(
         d=settings.faiss_dim, M=settings.faiss_m, index_path=settings.index_path
@@ -41,7 +45,7 @@ async def lifespan(app):
     app.state.device = device_global
     app.state.faiss_index = faiss_index
     app.state.model = model
-    print("Initialization complete.")
+    logger.info("Initialization complete.")
 
     yield
 
@@ -50,10 +54,10 @@ async def lifespan(app):
         image_dir = getattr(faiss_index, "image_directory", None)
         if image_dir:
             faiss_index.save_index_and_meta(settings.index_path, image_dir)
-            print(f"FAISS index and metadata saved ({settings.index_path})")
+            logger.info(f"FAISS index and metadata saved ({settings.index_path})")
         else:
             faiss_index.save(settings.index_path)
-            print(f"FAISS index saved without metadata ({settings.index_path})")
+            logger.info(f"FAISS index saved without metadata ({settings.index_path})")
 
 
 # --- Endpoints ---
@@ -68,7 +72,7 @@ async def index_images_get(request):
 
     return StreamingResponse(
         index_images_stream(request.app.state, image_directory, wildcard, batch_size),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
     )
 
 
@@ -84,7 +88,7 @@ async def index_images_post(request):
 
     return StreamingResponse(
         index_images_stream(request.app.state, image_directory, wildcard, batch_size),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
     )
 
 
@@ -99,7 +103,9 @@ def index_images_stream(state, image_directory: str, wildcard: str, batch_size: 
         return
 
     processed_images = 0
-    for batch in [paths[i:i + batch_size] for i in range(0, total_images, batch_size)]:
+    for batch in [
+        paths[i : i + batch_size] for i in range(0, total_images, batch_size)
+    ]:
         vectors, ids = [], []
         for path in batch:
             try:
@@ -112,7 +118,7 @@ def index_images_stream(state, image_directory: str, wildcard: str, batch_size: 
                 vectors.append(vector)
                 ids.append(uid)
             except Exception as e:
-                print(f"Error indexing {path}: {e}")
+                logger.error(f"Error indexing {path}: {e}")
             finally:
                 processed_images += 1
                 progress = int((processed_images / total_images) * 100)
@@ -135,7 +141,7 @@ async def search_similar(request):
     try:
         num_results = int(form.get("num_results", 9))
         top_k = int(form.get("top_k", 500))
-        distance_threshold = float(form.get("distance_threshold", 0.0))
+        distance_threshold = float(form.get("distance_threshold", 2000))
     except ValueError:
         return JSONResponse({"detail": "Invalid numeric parameters"}, status_code=400)
 
@@ -156,11 +162,13 @@ async def search_similar(request):
         for img_id, dist in filtered_results[:num_results]
     ]
 
-    return JSONResponse({
-        "count_within_threshold": len(filtered_results),
-        "results": results,
-        "full_results": filtered_results
-    })
+    return JSONResponse(
+        {
+            "count_within_threshold": len(filtered_results),
+            "results": results,
+            "full_results": filtered_results,
+        }
+    )
 
 
 async def stream_zip(request, image_ids):
@@ -187,9 +195,7 @@ async def download_zip(request):
     return StreamingResponse(
         stream_zip(request, image_ids),
         media_type="application/zip",
-        headers={
-            "Content-Disposition": "attachment; filename=matched_images.zip"
-        }
+        headers={"Content-Disposition": "attachment; filename=matched_images.zip"},
     )
 
 
@@ -212,13 +218,38 @@ async def index_status(request):
     Return current FAISS index status.
     """
     if not request.app.state.faiss_index:
-        return JSONResponse({"detail": "FAISS index is not initialized."}, status_code=500)
+        return JSONResponse(
+            {"detail": "FAISS index is not initialized."}, status_code=500
+        )
     return JSONResponse(request.app.state.faiss_index.get_status())
 
 
+async def gui_page(request):
+    file_path = os.path.join(BASE, "gui.html")
+    return FileResponse(file_path)
+
+
+async def plot_page(request):
+    file_path = os.path.join(BASE, "plot.html")
+    return HTMLResponse(open(file_path, "r").read())
+
+
 async def root(request):
-    print("Local Image Similarity Service")
+    logger.info("Local Image Similarity Service")
     return JSONResponse({"message": "Local Image Similarity Service"})
+
+
+warnings.filterwarnings(
+    "ignore",
+    message="xFormers is not available",
+    category=UserWarning,
+    module="dinov2.layers",
+)
+
+warnings.filterwarnings(
+    "ignore",
+    category=FutureWarning,
+)
 
 
 # --- Starlette app ---
@@ -233,18 +264,14 @@ app = Starlette(
         Route("/search-similar", search_similar, methods=["POST"]),
         Route("/index-images", index_images_get, methods=["GET"]),
         Route("/index-images", index_images_post, methods=["POST"]),
-    ]
+        Route("/plot-embeddings", plot_embeddings, methods=["POST"]),
+        Route("/plot", plot_page, methods=["GET"]),
+        Route("/gui", gui_page),
+    ],
 )
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-app.mount("/ui", StaticFiles(directory=current_dir, html=True), name="frontend")
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=1234,
-        reload=True
-    )
+
+    uvicorn.run("main:app", host="0.0.0.0", port=1234, reload=True)

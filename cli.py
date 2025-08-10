@@ -8,7 +8,9 @@ API_BASE = "http://localhost:1234"
 
 
 def index_images(image_dir):
-    response = requests.post(f"{API_BASE}/index-images", json={"image_directory": image_dir}, stream=True)
+    response = requests.post(
+        f"{API_BASE}/index-images", json={"image_directory": image_dir}, stream=True
+    )
     pbar = tqdm(total=100, desc="Indexing Progress", unit="%")
     last_progress = 0
 
@@ -55,9 +57,7 @@ def search_and_download(image_path, num_results=9, top_k=500, threshold=None):
     print(f"Found {len(image_ids)} similar images. Downloading...")
 
     zip_response = requests.post(
-        f"{API_BASE}/download-zip",
-        json={"image_ids": image_ids},
-        stream=True
+        f"{API_BASE}/download-zip", json={"image_ids": image_ids}, stream=True
     )
 
     if zip_response.status_code == 200:
@@ -85,6 +85,30 @@ def check_app_status():
         sys.exit(1)
 
 
+def plot_embedding(
+    index_path, metadata_path, examples_per_cluster=5, output_file="embeddings_plot.png"
+):
+    print("Requesting visualization generation...")
+
+    data = {
+        "index_path": index_path,
+        "metadata_path": metadata_path,
+        "examples_per_cluster": str(examples_per_cluster),
+    }
+
+    response = requests.post(f"{API_BASE}/plot-embeddings", data=data)
+    if (
+        response.status_code == 200
+        and response.headers.get("content-type") == "image/png"
+    ):
+        with open(output_file, "wb") as f:
+            f.write(response.content)
+        print(f"Visualization saved to {output_file}")
+    else:
+        print(f"Failed to generate visualization. Status: {response.status_code}")
+        print("Response:", response.text)
+
+
 def main():
     check_app_status()
 
@@ -95,13 +119,38 @@ def main():
     parser_index = subparsers.add_parser("index", help="Directory of images to index")
     parser_index.add_argument("--dir", required=True, help="Path to image directory")
 
-    parser_search = subparsers.add_parser("search", help="Search with a query image and download results as ZIP")
+    parser_search = subparsers.add_parser(
+        "search", help="Search with a query image and download results as ZIP"
+    )
     parser_search.add_argument("--image", required=True, help="Path to query image")
-    parser_search.add_argument("--num_results", type=int, default=9, help="Useless at the moment")
-    parser_search.add_argument("--top_k", type=int, default=500, help="Top K to search in index")
+    parser_search.add_argument(
+        "--num_results", type=int, default=9, help="Useless at the moment"
+    )
+    parser_search.add_argument(
+        "--top_k", type=int, default=500, help="Top K to search in index"
+    )
     parser_search.add_argument("--threshold", type=float, help="Distance threshold")
 
     subparsers.add_parser("status", help="Check index status")
+
+    parser_plot = subparsers.add_parser(
+        "plot", help="Generate embedding plot"
+    )
+    parser_plot.add_argument(
+        "--index_path", required=True, help="Path to FAISS index file"
+    )
+    parser_plot.add_argument(
+        "--metadata_path", required=True, help="Path to metadata JSON file"
+    )
+    parser_plot.add_argument(
+        "--examples_per_cluster",
+        type=int,
+        default=5,
+        help="Examples per cluster to show",
+    )
+    parser_plot.add_argument(
+        "--output", default="embeddings_plot.png", help="Output PNG filename"
+    )
 
     args = parser.parse_args()
 
@@ -111,6 +160,13 @@ def main():
         search_and_download(args.image, args.num_results, args.top_k, args.threshold)
     elif args.command == "status":
         check_status()
+    elif args.command == "plot":
+        plot_embedding(
+            index_path=args.index_path,
+            metadata_path=args.metadata_path,
+            examples_per_cluster=args.examples_per_cluster,
+            output_file=args.output,
+        )
     else:
         parser.print_help()
         sys.exit(1)
