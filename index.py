@@ -5,6 +5,7 @@ import os
 
 from logger import logger
 
+
 class FaissIndex:
     def __init__(self, d: int = 384, M: int = 32, index_path: str = None):
         self.d = d
