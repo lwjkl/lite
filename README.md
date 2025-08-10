@@ -1,6 +1,6 @@
 # lite
 
-lite is a lightweight image similarity search application built with [FAISS](https://github.com/facebookresearch/faiss) and [Starlette](https://github.com/encode/starlette), using the [Dinov2](https://github.com/facebookresearch/dinov2) ViT-S/14 distilled model to generate image embeddings. The main purpose of the application is to quickly sort through a large pool of images for data labeling. The current focus is on running the application on a CPU-only instance, particularly for the ann index and feature extraction model.
+lite is a lightweight image similarity search application built with [FAISS](https://github.com/facebookresearch/faiss) and [Starlette](https://github.com/encode/starlette), using the [Dinov2](https://github.com/facebookresearch/dinov2) ViT-S/14 distilled model to generate image embeddings. The main purpose of the application is to quickly sort through a large pool of images for data labeling. The current focus is on running the application on a CPU-only instance.
 
 ## behaviour
 
@@ -18,7 +18,17 @@ Two optional parameters are available when performing a search — you can adjus
 - distance threshold - limits results to those within a certain distance.
 - top-k result to search -  the number of top results to return, sorted by distance.
 
-## run (CPU)
+## plot embeddings
+
+Plot the embeddings with [UMAP](https://umap-learn.readthedocs.io/en/latest/index.html) to unfold the manifold the embeddings lie on + [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/) to find clusters on the reduces space for easier interpretation and debugging. UMAP is helpful on reducing the embeddings to lower dimensional space while preserving local and global structure. HDBSCAN, a density based clustering algorithm is particularly useful on identifying clusters in irregular shapes and detecting outliers.
+
+To plot:
+
+gui -> visit /plot endpoint
+
+cli -> python cli.py plot --index_path /path/to/index.faiss --metadata_path /path/to/index.faiss.meta.json
+
+## run
 
 To run the application, clone this repository to your machine, navigate into the project directory, create a virtual environment, and install the dependencies with:
 
@@ -34,7 +44,7 @@ python main.py
 
 ## usage (ui)
 
-To access the UI, open your browser and go to `/ui`.
+To access the UI, open your browser and go to `/gui`.
 
 To index a directory, provide the full path to the image directory in the input field and click **Index Image**. Indexing may take some time depending on the size of your dataset.
 
@@ -71,4 +81,10 @@ To search with threshold and top_k override:
 
 ```bash
 python cli.py search --image /path/to/query/image.jpg --threshold 1000 --top_k 100
+```
+
+To plot embeddings:
+
+```bash
+python cli.py plot --index_path /path/to/index.faiss --metadata_path /path/to/index.faiss.meta.json
 ```
