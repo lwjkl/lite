@@ -20,13 +20,7 @@ Two optional parameters are available when performing a search — you can adjus
 
 ## plot embeddings
 
-Plot the embeddings with [UMAP](https://umap-learn.readthedocs.io/en/latest/index.html) to unfold the manifold the embeddings lie on + [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/) to find clusters on the reduces space for easier interpretation and debugging. UMAP is helpful on reducing the embeddings to lower dimensional space while preserving local and global structure. HDBSCAN, a density based clustering algorithm is particularly useful on identifying clusters in irregular shapes and detecting outliers.
-
-To plot:
-
-gui -> visit /plot endpoint
-
-cli -> python cli.py plot --index_path /path/to/index.faiss --metadata_path /path/to/index.faiss.meta.json
+Plot the embeddings with [UMAP](https://umap-learn.readthedocs.io/en/latest/index.html) and [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/). UMAP is helpful on reducing the embeddings to lower dimensional space while preserving local and global structure. HDBSCAN is particularly useful on identifying clusters in irregular shapes and detecting outliers.
 
 ## run
 
@@ -36,15 +30,29 @@ To run the application, clone this repository to your machine, navigate into the
 pip install -r requirements.txt
 ```
 
-You can launch the application by running (server binds to 0.0.0.0:1234 by default):
+You can launch the application by running the API(server binds to 0.0.0.0:1234 by default):
 
 ```bash
-python main.py
+python api.py
 ```
 
-## usage (ui)
+or use it as a python application
 
-To access the UI, open your browser and go to `/gui`.
+```python
+from main import App
+
+app = App()
+app.embed_image(...)
+app.faiss_index.insert(...)
+app.faiss_index.search(...)
+app.faiss_index.save_index_and_meta(...)
+```
+
+Refer `settings.py` file for configuration.
+
+## usage (gui)
+
+To access, open your browser and go to `/gui`.
 
 To index a directory, provide the full path to the image directory in the input field and click **Index Image**. Indexing may take some time depending on the size of your dataset.
 
@@ -54,6 +62,8 @@ Downloading the results,
 
 - To download results as JSON, check the Download Results as JSON box before searching.
 - To download raw images, after clicking the Search button, the top 9 most similar images will be displayed on the right panel. An option will be available below them to download the images as a ZIP file.
+
+Vist /plot endpoint, to plot the embeddings.
 
 ## usage (cli)
 
