@@ -7,6 +7,9 @@ from logger import logger
 
 class FaissIndex:
     def __init__(self, d: int = 384, M: int = 32, index_path: str = None):
+        self.d = d
+        self.M = M
+        self.index_path = index_path
         self.status_message = "Uninitialized FAISS index."
         self.image_directory = None
         self._str_to_int = {}
@@ -29,6 +32,9 @@ class FaissIndex:
                 if os.path.exists(meta_path):
                     with open(meta_path, "r") as meta_file:
                         meta = json.load(meta_file)
+                        self.d = meta.get("d")
+                        self.M = meta.get("M")
+                        self.index_path = meta.get("index_path")
                         self.image_directory = meta.get("image_directory")
                         logger.info(self.image_directory)
                         self._str_to_int = meta.get("str_to_int", {})
@@ -132,6 +138,9 @@ class FaissIndex:
         with open(meta_path, "w") as meta_file:
             json.dump(
                 {
+                    "d": self.d,
+                    "M": self.M,
+                    "index_path": self.index_path,
                     "image_directory": image_dir,
                     "str_to_int": self._str_to_int,
                     "int_to_str": self._int_to_str,
@@ -147,7 +156,7 @@ class FaissIndex:
         Get the status of index.
         """
         total_vectors = self.index.ntotal
-        logger.info("Total vectors in FAISS:", total_vectors)
+        logger.info(f"Total vectors in FAISS: {total_vectors}")
 
         ids = faiss.vector_to_array(self.index.id_map)
         num_ids = len(ids)
