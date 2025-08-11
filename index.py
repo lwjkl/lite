@@ -43,7 +43,9 @@ class FaissIndex:
                             int(k): v for k, v in meta.get("int_to_str", {}).items()
                         }
                         self._next_id = max(self._int_to_str.keys(), default=0) + 1
-                    logger.info(f"Loaded metadata: image_directory={self.image_directory}")
+                    logger.info(
+                        f"Loaded metadata: image_directory={self.image_directory}"
+                    )
                 else:
                     logger.info(f"No metadata found for {index_path}.")
             except Exception as exp:

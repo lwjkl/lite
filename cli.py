@@ -133,9 +133,7 @@ def main():
 
     subparsers.add_parser("status", help="Check index status")
 
-    parser_plot = subparsers.add_parser(
-        "plot", help="Generate embedding plot"
-    )
+    parser_plot = subparsers.add_parser("plot", help="Generate embedding plot")
     parser_plot.add_argument(
         "--index_path", required=True, help="Path to FAISS index file"
     )

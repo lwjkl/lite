@@ -8,7 +8,13 @@ import zipfile
 
 from starlette.applications import Starlette
 from starlette.routing import Route
-from starlette.responses import JSONResponse, StreamingResponse, FileResponse, HTMLResponse, PlainTextResponse
+from starlette.responses import (
+    JSONResponse,
+    StreamingResponse,
+    FileResponse,
+    HTMLResponse,
+    PlainTextResponse,
+)
 from contextlib import asynccontextmanager
 
 from main import App
@@ -35,7 +41,9 @@ async def index_images_get(request):
         return JSONResponse({"detail": "Missing image_directory"}, status_code=400)
 
     return StreamingResponse(
-        request.app.state.app.index_images_stream(image_directory, wildcard, batch_size),
+        request.app.state.app.index_images_stream(
+            image_directory, wildcard, batch_size
+        ),
         media_type="text/event-stream",
     )
 
@@ -54,7 +62,9 @@ async def index_images_post(request):
         return JSONResponse({"detail": "Missing image_directory"}, status_code=400)
 
     return StreamingResponse(
-        request.app.state.app.index_images_stream(image_directory, wildcard, batch_size),
+        request.app.state.app.index_images_stream(
+            image_directory, wildcard, batch_size
+        ),
         media_type="text/event-stream",
     )
 
@@ -88,7 +98,9 @@ async def stream_zip(request, image_ids):
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as zipf:
         for image_id in image_ids:
-            image_path = os.path.join(request.app.state.app.faiss_index.image_directory, image_id)
+            image_path = os.path.join(
+                request.app.state.app.faiss_index.image_directory, image_id
+            )
             if os.path.exists(image_path):
                 zipf.write(image_path, arcname=os.path.basename(image_path))
     buffer.seek(0)
@@ -110,7 +122,9 @@ async def get_image(request):
     if not request.app.state.app.faiss_index.image_directory:
         return JSONResponse({"detail": "Image directory not loaded."}, status_code=500)
 
-    image_path = os.path.join(request.app.state.app.faiss_index.image_directory, image_id)
+    image_path = os.path.join(
+        request.app.state.app.faiss_index.image_directory, image_id
+    )
     if not os.path.exists(image_path):
         return JSONResponse({"detail": "Image not found."}, status_code=404)
     return FileResponse(image_path)
@@ -118,7 +132,9 @@ async def get_image(request):
 
 async def index_status(request):
     if not request.app.state.app.faiss_index:
-        return JSONResponse({"detail": "FAISS index is not initialized."}, status_code=500)
+        return JSONResponse(
+            {"detail": "FAISS index is not initialized."}, status_code=500
+        )
     return JSONResponse(request.app.state.app.faiss_index.get_status())
 
 
@@ -139,7 +155,9 @@ async def plot_embeddings(request):
 
     logger.info("Generating plot...")
     app = request.app.state.app
-    png_bytes_list = app.plot_embeddings(index_path, metadata_path, examples_per_cluster)
+    png_bytes_list = app.plot_embeddings(
+        index_path, metadata_path, examples_per_cluster
+    )
     logger.info("Complete generating plot...")
 
     # Send back the first figure (scatter plot) as PNG image

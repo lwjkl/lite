@@ -50,7 +50,9 @@ class App:
             return
 
         processed_images = 0
-        for batch in [paths[i : i + batch_size] for i in range(0, total_images, batch_size)]:
+        for batch in [
+            paths[i : i + batch_size] for i in range(0, total_images, batch_size)
+        ]:
             vectors, ids = [], []
             for path in batch:
                 try:
@@ -76,7 +78,9 @@ class App:
         self.faiss_index.save_index_and_meta(settings.index_path, image_directory)
         yield "data: done\n\n"
 
-    def search_similar_images(self, img, top_k=500, distance_threshold=2000, num_results=9):
+    def search_similar_images(
+        self, img, top_k=500, distance_threshold=2000, num_results=9
+    ):
         """
         Search for similar images given an input image.
         """
@@ -106,7 +110,6 @@ class App:
             self.faiss_index.save(settings.index_path)
             logger.info(f"FAISS index saved without metadata ({settings.index_path})")
 
-    
     def load_faiss_and_metadata(self, index_path, metadata_path, num_embeddings=-1):
         index = faiss.read_index(index_path)
         metadata = json.load(open(metadata_path))
@@ -124,7 +127,7 @@ class App:
         ]
 
         return embeddings, external_ids, image_paths
-    
+
     def compute_umap_and_hdbscan(
         self,
         embeddings,
@@ -168,7 +171,7 @@ class App:
         ).fit_transform(embeddings)
 
         return plot_embedding, labels
-    
+
     def set_style(self):
         plt.rcParams.update(
             {
@@ -233,7 +236,9 @@ class App:
             }
         )
 
-    def plot_matplotlib(self, standard_embedding, labels, image_paths, examples_per_cluster=5):
+    def plot_matplotlib(
+        self, standard_embedding, labels, image_paths, examples_per_cluster=5
+    ):
         unique_labels = numpy.unique(labels)
         cmap = plt.get_cmap("Spectral", len(unique_labels))
         noise_color = (0.3, 0.3, 0.3, 0.4)
@@ -376,7 +381,7 @@ class App:
         fig_examples.tight_layout(rect=[0.08, 0, 1, 1])
 
         return fig_scatter, fig_examples
-    
+
     def figures_to_png_bytes(self, figures, dpi=300):
         """
         Convert one or multiple Matplotlib figures to PNG bytes.
@@ -392,14 +397,16 @@ class App:
             png_bytes_list.append(buf.read())
             plt.close(fig)
         return png_bytes_list
-    
+
     def plot_embeddings(
         self,
         index_path: str,
         metadata_path: str,
         examples_per_cluster: int = 5,
     ):
-        embeddings, _, image_paths = self.load_faiss_and_metadata(index_path, metadata_path)
+        embeddings, _, image_paths = self.load_faiss_and_metadata(
+            index_path, metadata_path
+        )
         standard_embedding, labels = self.compute_umap_and_hdbscan(embeddings)
         fig_scatter, fig_examples = self.plot_matplotlib(
             standard_embedding, labels, image_paths, examples_per_cluster

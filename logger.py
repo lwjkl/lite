@@ -26,7 +26,9 @@ class JSONFormatter(logging.Formatter):
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-file_handler = RotatingFileHandler(settings.log_file_path, maxBytes=1024*1024, backupCount=5)
+file_handler = RotatingFileHandler(
+    settings.log_file_path, maxBytes=1024 * 1024, backupCount=5
+)
 stream_handler = logging.StreamHandler(sys.stdout)
 
 json_formatter = JSONFormatter()
