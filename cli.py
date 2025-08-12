@@ -37,7 +37,9 @@ def index_images(image_dir: str):
     pbar.close()
 
 
-def search_and_download(image_path: str, num_results: int = 9, top_k: int = 500, threshold: float = None):
+def search_and_download(
+    image_path: str, num_results: int = 9, top_k: int = 500, threshold: float = None
+):
     print("Searching for similar images...")
 
     with open(image_path, "rb") as f:
@@ -86,7 +88,10 @@ def check_app_status():
 
 
 def plot_embedding(
-    index_path: str, metadata_path: str, examples_per_cluster: int = 5, output_file: str = "embeddings_plot.png"
+    index_path: str,
+    metadata_path: str,
+    examples_per_cluster: int = 5,
+    output_file: str = "embeddings_plot.png",
 ):
     print("Requesting visualization generation...")
 

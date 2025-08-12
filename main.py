@@ -78,7 +78,11 @@ class App:
         yield "data: done\n\n"
 
     def search_similar_images(
-        self, img: np.ndarray, top_k: int = 500, distance_threshold: int | float = 2000, num_results: int = 9
+        self,
+        img: np.ndarray,
+        top_k: int = 500,
+        distance_threshold: int | float = 2000,
+        num_results: int = 9,
     ):
         """
         Search for similar images given an input image.
@@ -109,7 +113,9 @@ class App:
             self.faiss_index.save(settings.index_path)
             logger.info(f"FAISS index saved without metadata ({settings.index_path})")
 
-    def load_faiss_and_metadata(self, index_path: str, metadata_path: str, num_embeddings: int = -1):
+    def load_faiss_and_metadata(
+        self, index_path: str, metadata_path: str, num_embeddings: int = -1
+    ):
         index = faiss.read_index(index_path)
         metadata = json.load(open(metadata_path))
         image_root_path = metadata.get("image_directory")
@@ -236,7 +242,11 @@ class App:
         )
 
     def plot_matplotlib(
-        self, standard_embedding: np.ndarray, labels: np.ndarray, image_paths: str, examples_per_cluster: int = 5
+        self,
+        standard_embedding: np.ndarray,
+        labels: np.ndarray,
+        image_paths: str,
+        examples_per_cluster: int = 5,
     ):
         unique_labels = np.unique(labels)
         cmap = plt.get_cmap("Spectral", len(unique_labels))

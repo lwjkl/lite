@@ -159,12 +159,12 @@ async def plot_embeddings(request):
         index_path, metadata_path, examples_per_cluster
     )
     logger.info("Complete generating plot...")
-    
+
     response_data = {
-        "plot1": base64.b64encode(png_bytes_list[0]).decode('utf-8'),
-        "plot2": base64.b64encode(png_bytes_list[1]).decode('utf-8')
+        "plot1": base64.b64encode(png_bytes_list[0]).decode("utf-8"),
+        "plot2": base64.b64encode(png_bytes_list[1]).decode("utf-8"),
     }
-    
+
     return JSONResponse(response_data)
 
 
@@ -206,9 +206,4 @@ if __name__ == "__main__":
     import uvicorn
     from settings import settings
 
-    uvicorn.run(
-        "api:app", 
-        host="0.0.0.0", 
-        port=settings.port, 
-        reload=True
-    )
+    uvicorn.run("api:app", host="0.0.0.0", port=settings.port, reload=True)

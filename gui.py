@@ -80,7 +80,9 @@ class View:
         except Exception as e:
             yield f"Indexing failed: {e}"
 
-    def search_handler(self, image: Image.Image, distance_threshold: int | float, top_k: int):
+    def search_handler(
+        self, image: Image.Image, distance_threshold: int | float, top_k: int
+    ):
         """Search similar images."""
         if image is None:
             return None
@@ -106,7 +108,9 @@ class View:
 
         return images_to_display
 
-    def plot_embeddings_handler(self, index_path: str, metadata_path: str, examples_per_cluster: int = 5):
+    def plot_embeddings_handler(
+        self, index_path: str, metadata_path: str, examples_per_cluster: int = 5
+    ):
         """Generate embeddings plots and return as list for gallery."""
         try:
             examples_per_cluster = int(examples_per_cluster)
@@ -138,7 +142,7 @@ class View:
                 padding: 20px;
             }
         """,
-        theme=self.theme,
+            theme=self.theme,
         ) as demo:
             # === PAGE 1: Search Tab ===
             with gr.Tab("Indexing & Search"):
