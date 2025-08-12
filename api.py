@@ -1,3 +1,4 @@
+import base64
 import cv2
 import io
 import json
@@ -12,7 +13,6 @@ from starlette.responses import (
     JSONResponse,
     StreamingResponse,
     FileResponse,
-    HTMLResponse,
     PlainTextResponse,
 )
 from contextlib import asynccontextmanager
@@ -94,7 +94,7 @@ async def search_similar(request):
     return JSONResponse(result)
 
 
-async def stream_zip(request, image_ids):
+async def stream_zip(request, image_ids: str):
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as zipf:
         for image_id in image_ids:
@@ -159,16 +159,13 @@ async def plot_embeddings(request):
         index_path, metadata_path, examples_per_cluster
     )
     logger.info("Complete generating plot...")
-
-    # Send back the first figure (scatter plot) as PNG image
-    return StreamingResponse(io.BytesIO(png_bytes_list[0]), media_type="image/png")
-
-
-async def plot_page(request):
-    file_path = os.path.join(BASE, "plot.html")
-    with open(file_path, "r") as f:
-        content = f.read()
-    return HTMLResponse(content)
+    
+    response_data = {
+        "plot1": base64.b64encode(png_bytes_list[0]).decode('utf-8'),
+        "plot2": base64.b64encode(png_bytes_list[1]).decode('utf-8')
+    }
+    
+    return JSONResponse(response_data)
 
 
 async def root(request):
@@ -200,7 +197,6 @@ app = Starlette(
         Route("/index-images", index_images_get, methods=["GET"]),
         Route("/index-images", index_images_post, methods=["POST"]),
         Route("/plot-embeddings", plot_embeddings, methods=["POST"]),
-        Route("/plot", plot_page, methods=["GET"]),
         Route("/gui", gui_page, methods=["GET"]),
     ],
 )
@@ -208,5 +204,11 @@ app = Starlette(
 
 if __name__ == "__main__":
     import uvicorn
+    from settings import settings
 
-    uvicorn.run("api:app", host="0.0.0.0", port=1234, reload=True)
+    uvicorn.run(
+        "api:app", 
+        host="0.0.0.0", 
+        port=settings.port, 
+        reload=True
+    )
