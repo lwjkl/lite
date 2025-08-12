@@ -7,7 +7,7 @@ from tqdm import tqdm
 API_BASE = "http://localhost:1234"
 
 
-def index_images(image_dir):
+def index_images(image_dir: str):
     response = requests.post(
         f"{API_BASE}/index-images", json={"image_directory": image_dir}, stream=True
     )
@@ -37,7 +37,7 @@ def index_images(image_dir):
     pbar.close()
 
 
-def search_and_download(image_path, num_results=9, top_k=500, threshold=None):
+def search_and_download(image_path: str, num_results: int = 9, top_k: int = 500, threshold: float = None):
     print("Searching for similar images...")
 
     with open(image_path, "rb") as f:
@@ -86,7 +86,7 @@ def check_app_status():
 
 
 def plot_embedding(
-    index_path, metadata_path, examples_per_cluster=5, output_file="embeddings_plot.png"
+    index_path: str, metadata_path: str, examples_per_cluster: int = 5, output_file: str = "embeddings_plot.png"
 ):
     print("Requesting visualization generation...")
 
