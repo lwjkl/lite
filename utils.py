@@ -1,11 +1,11 @@
-import numpy
+import numpy as np
 import torch
 import torchvision.transforms.v2 as T
 
 
 def embed(
-    image: numpy.ndarray, model: torch.nn.Module, device: str = "cpu"
-) -> numpy.ndarray:
+    image: np.ndarray, model: torch.nn.Module, device: str = "cpu"
+) -> np.ndarray:
     transform = T.Compose(
         [
             T.Resize(size=(224, 224)),

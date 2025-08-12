@@ -1,6 +1,6 @@
 import faiss
 import json
-import numpy
+import numpy as np
 import os
 
 from logger import logger
@@ -72,8 +72,8 @@ class FaissIndex:
         """
         Insert vectors into the index, using string IDs.
         """
-        if not isinstance(vectors, numpy.ndarray):
-            vectors = numpy.array(vectors, dtype=numpy.float32)
+        if not isinstance(vectors, np.ndarray):
+            vectors = np.array(vectors, dtype=np.float32)
 
         # Map string IDs to integer IDs
         int_ids = [self._get_or_create_int_id(sid) for sid in string_ids]
@@ -95,18 +95,18 @@ class FaissIndex:
 
         if filtered_vectors:
             self.index.add_with_ids(
-                numpy.array(filtered_vectors, dtype=numpy.float32),
-                numpy.array(filtered_ids, dtype=numpy.int64),
+                np.array(filtered_vectors, dtype=np.float32),
+                np.array(filtered_ids, dtype=np.int64),
             )
 
     def search(
-        self, query_vector: numpy.ndarray, k: int = 5, distance_threshold: float = None
+        self, query_vector: np.ndarray, k: int = 5, distance_threshold: float = None
     ):
         """
         Search vectors and return (string_id, distance).
         """
-        if not isinstance(query_vector, numpy.ndarray):
-            query_vector = numpy.array(query_vector, dtype=numpy.float32)
+        if not isinstance(query_vector, np.ndarray):
+            query_vector = np.array(query_vector, dtype=np.float32)
 
         if query_vector.ndim == 1:
             query_vector = query_vector.reshape(1, -1)

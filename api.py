@@ -2,7 +2,7 @@ import base64
 import cv2
 import io
 import json
-import numpy
+import numpy as np
 import os
 import warnings
 import zipfile
@@ -81,7 +81,7 @@ async def search_similar(request):
         return JSONResponse({"detail": "Invalid numeric parameters"}, status_code=400)
 
     contents = await file.read()
-    np_img = numpy.frombuffer(contents, numpy.uint8)
+    np_img = np.frombuffer(contents, np.uint8)
     img = cv2.imdecode(np_img, cv2.IMREAD_COLOR)
     if img is None:
         return JSONResponse({"detail": "Invalid image."}, status_code=400)
