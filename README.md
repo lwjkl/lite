@@ -1,6 +1,6 @@
 # lite
 
-lite is a lightweight image similarity search application built with [FAISS](https://github.com/facebookresearch/faiss) and [Starlette](https://github.com/encode/starlette), using the [Dinov2](https://github.com/facebookresearch/dinov2) ViT-S/14 distilled model to generate image embeddings. The main purpose of the application is to quickly sort through a large pool of images for data labeling. The current focus is on running the application on a CPU-only instance.
+lite is a lightweight image similarity search application built with [FAISS](https://github.com/facebookresearch/faiss), using the [Dinov2](https://github.com/facebookresearch/dinov2) ViT-S/14 distilled model to generate image embeddings. The main purpose of the application is to quickly sort through a large pool of images for data labeling. The current focus is on running the application on a CPU-only instance.
 
 ## behaviour
 
@@ -22,7 +22,7 @@ Two optional parameters are available when performing a search — you can adjus
 
 Plot the embeddings with [UMAP](https://umap-learn.readthedocs.io/en/latest/index.html) and [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/). UMAP is helpful on reducing the embeddings to lower dimensional space while preserving local and global structure. HDBSCAN is particularly useful on identifying clusters in irregular shapes and detecting outliers.
 
-## run
+## install
 
 To run the application, clone this repository to your machine, navigate into the project directory, create a virtual environment, and install the dependencies with:
 
@@ -30,13 +30,29 @@ To run the application, clone this repository to your machine, navigate into the
 pip install -r requirements.txt
 ```
 
-You can launch the application by running the API(server binds to 0.0.0.0:1234 by default):
+## run
+
+You can run the application in several method:
+
+Gradio
+
+```bash
+python gui.py
+```
+
+API:
 
 ```bash
 python api.py
 ```
 
-or use it as a python application
+Cli
+
+```bash
+python cli.py
+```
+
+or as a python application:
 
 ```python
 from main import App
@@ -50,20 +66,21 @@ app.faiss_index.save_index_and_meta(...)
 
 Refer `settings.py` file for configuration.
 
-## usage (gui)
+## usage (gradio)
 
-To access, open your browser and go to `/gui`.
+To index a directory, provide the full path to the image directory in the input field and click **Index Images**. Indexing may take some time depending on the size of your dataset.
 
-To index a directory, provide the full path to the image directory in the input field and click **Index Image**. Indexing may take some time depending on the size of your dataset.
+Once indexing is complete, you can start searching for similar images by uploading an image at the right hand side panel.
 
-Once indexing is complete, you can start searching for similar images by uploading a query image using the **Upload Query Image** input field.
+Click the plot embeddings tab for plotting embeddings.
+
+> [!NOTE]  
+> You can launch the API and navigate to `/gui` endpoint to access the download result function.
 
 Downloading the results,
 
 - To download results as JSON, check the Download Results as JSON box before searching.
 - To download raw images, after clicking the Search button, the top 9 most similar images will be displayed on the right panel. An option will be available below them to download the images as a ZIP file.
-
-Vist /plot endpoint, to plot the embeddings.
 
 ## usage (cli)
 
