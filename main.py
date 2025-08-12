@@ -4,12 +4,11 @@ import hdbscan
 import io
 import json
 import matplotlib.pyplot as plt
-import numpy
+import numpy as np
 import os
 import time
 import torch
 import umap
-
 from matplotlib.lines import Line2D
 from PIL import Image
 
@@ -31,7 +30,7 @@ class App:
         self.model = get_embeder(self.device)
         logger.info("Application initialized.")
 
-    def embed_image(self, img):
+    def embed_image(self, img: np.ndarray):
         """
         Embed a single image.
         """
@@ -79,7 +78,7 @@ class App:
         yield "data: done\n\n"
 
     def search_similar_images(
-        self, img, top_k=500, distance_threshold=2000, num_results=9
+        self, img: np.ndarray, top_k: int = 500, distance_threshold: int | float = 2000, num_results: int = 9
     ):
         """
         Search for similar images given an input image.
@@ -110,7 +109,7 @@ class App:
             self.faiss_index.save(settings.index_path)
             logger.info(f"FAISS index saved without metadata ({settings.index_path})")
 
-    def load_faiss_and_metadata(self, index_path, metadata_path, num_embeddings=-1):
+    def load_faiss_and_metadata(self, index_path: str, metadata_path: str, num_embeddings: int = -1):
         index = faiss.read_index(index_path)
         metadata = json.load(open(metadata_path))
         image_root_path = metadata.get("image_directory")
@@ -130,18 +129,18 @@ class App:
 
     def compute_umap_and_hdbscan(
         self,
-        embeddings,
-        cluster_umap_neighbors=15,
-        cluster_umap_min_dist=0.0,
-        cluster_umap_n_components=2,
-        cluster_umap_random_state=42,
-        hdbscan_min_samples=10,
-        hdbscan_min_cluster_size=30,
-        plot_umap_neighbors=None,
-        plot_umap_min_dist=None,
-        plot_umap_n_components=2,
-        plot_umap_random_state=42,
-        umap_n_jobs=1,
+        embeddings: np.ndarray,
+        cluster_umap_neighbors: int = 15,
+        cluster_umap_min_dist: int | float = 0.0,
+        cluster_umap_n_components: int = 2,
+        cluster_umap_random_state: int = 42,
+        hdbscan_min_samples: int = 10,
+        hdbscan_min_cluster_size: int = 30,
+        plot_umap_neighbors: int = None,
+        plot_umap_min_dist: int | float = None,
+        plot_umap_n_components: int = 2,
+        plot_umap_random_state: int = 42,
+        umap_n_jobs: int = 1,
     ):
         """
         Reduce embeddings with UMAP for clustering then cluster with HDBSCAN.
@@ -237,9 +236,9 @@ class App:
         )
 
     def plot_matplotlib(
-        self, standard_embedding, labels, image_paths, examples_per_cluster=5
+        self, standard_embedding: np.ndarray, labels: np.ndarray, image_paths: str, examples_per_cluster: int = 5
     ):
-        unique_labels = numpy.unique(labels)
+        unique_labels = np.unique(labels)
         cmap = plt.get_cmap("Spectral", len(unique_labels))
         noise_color = (0.3, 0.3, 0.3, 0.4)
 
@@ -342,12 +341,12 @@ class App:
         )
 
         if n_clusters == 1:
-            axes = numpy.expand_dims(axes, axis=0)
+            axes = np.expand_dims(axes, axis=0)
 
         for row_idx, cluster_id in enumerate(sorted_clusters):
             mask = labels == cluster_id
             cluster_points = standard_embedding[mask]
-            cluster_paths = numpy.array(image_paths)[mask]
+            cluster_paths = np.array(image_paths)[mask]
 
             if cluster_points.shape[0] == 0:
                 for col_idx in range(examples_per_cluster):
@@ -356,10 +355,10 @@ class App:
 
             # Find centroid in UMAP space
             centroid = cluster_points.mean(axis=0)
-            distances = numpy.linalg.norm(cluster_points - centroid, axis=1)
+            distances = np.linalg.norm(cluster_points - centroid, axis=1)
 
             # Closest images to centroid
-            closest_indices = numpy.argsort(distances)[:examples_per_cluster]
+            closest_indices = np.argsort(distances)[:examples_per_cluster]
 
             for col_idx, idx in enumerate(closest_indices):
                 ax_img = axes[row_idx, col_idx]
@@ -382,7 +381,7 @@ class App:
 
         return fig_scatter, fig_examples
 
-    def figures_to_png_bytes(self, figures, dpi=300):
+    def figures_to_png_bytes(self, figures: list, dpi: int = 300):
         """
         Convert one or multiple Matplotlib figures to PNG bytes.
         """
@@ -407,9 +406,12 @@ class App:
         embeddings, _, image_paths = self.load_faiss_and_metadata(
             index_path, metadata_path
         )
+
         standard_embedding, labels = self.compute_umap_and_hdbscan(embeddings)
+
         fig_scatter, fig_examples = self.plot_matplotlib(
             standard_embedding, labels, image_paths, examples_per_cluster
         )
+
         png_bytes_list = self.figures_to_png_bytes([fig_scatter, fig_examples])
         return png_bytes_list
