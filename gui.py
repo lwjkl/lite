@@ -9,6 +9,11 @@ from main import App
 class View:
     def __init__(self):
         self.app = App()
+        self.theme = gr.themes.Default(
+            primary_hue="stone",
+            secondary_hue="neutral",
+            text_size="lg",
+        )
 
     def refresh_status_handler(self):
         """Fetch and display FAISS index status."""
@@ -24,7 +29,7 @@ class View:
         except Exception as e:
             return f"Error retrieving status: {e}"
 
-    def index_images_handler(self, image_dir, wildcard, batch_size):
+    def index_images_handler(self, image_dir: str, wildcard: str, batch_size: int):
         """
         Generator handler to run indexing and stream progress into Index Status box.
         Yields progress updates as strings so Gradio will update the textbox live.
@@ -75,7 +80,7 @@ class View:
         except Exception as e:
             yield f"Indexing failed: {e}"
 
-    def search_handler(self, image, distance_threshold, top_k):
+    def search_handler(self, image: Image.Image, distance_threshold: int | float, top_k: int):
         """Search similar images."""
         if image is None:
             return None
@@ -101,7 +106,7 @@ class View:
 
         return images_to_display
 
-    def plot_embeddings_handler(self, index_path, metadata_path, examples_per_cluster):
+    def plot_embeddings_handler(self, index_path: str, metadata_path: str, examples_per_cluster: int = 5):
         """Generate embeddings plots and return as list for gallery."""
         try:
             examples_per_cluster = int(examples_per_cluster)
@@ -124,7 +129,7 @@ class View:
 
         return images
 
-    def launch(self):
+    def launch(self, **kwargs):
         with gr.Blocks(
             css="""
             .main-container {
@@ -132,12 +137,12 @@ class View:
                 margin: auto;
                 padding: 20px;
             }
-        """
+        """,
+        theme=self.theme,
         ) as demo:
             # === PAGE 1: Search Tab ===
-            with gr.Tab("Search"):
+            with gr.Tab("Indexing & Search"):
                 with gr.Row(elem_classes="main-container", equal_height=True):
-                    # Left Column
                     with gr.Column():
                         index_status = gr.Textbox(
                             label="Index Status", lines=6, interactive=False
@@ -163,7 +168,6 @@ class View:
                         )
                         search_button = gr.Button("Search")
 
-                    # Right Column
                     with gr.Column():
                         upload_image_input = gr.Image(
                             label="Upload Image for Search", type="pil"
@@ -173,21 +177,21 @@ class View:
                         )
 
             # === PAGE 2: Visualization Tab ===
-            with gr.Tab("Visualize Embeddings"):
+            with gr.Tab("Plot Embeddings"):
                 with gr.Row(elem_classes="main-container"):
                     with gr.Column():
                         index_path_input = gr.Textbox(
-                            label="Path to FAISS Index",
+                            label="Index Path",
                             placeholder="/path/to/index.faiss",
                         )
                         metadata_path_input = gr.Textbox(
-                            label="Path to Metadata JSON",
+                            label="Metadata Path",
                             placeholder="/path/to/metadata.json",
                         )
                         examples_per_cluster_input = gr.Number(
                             label="Examples Per Cluster", value=5, precision=0
                         )
-                        plot_button = gr.Button("Plot Embeddings")
+                        plot_button = gr.Button("Plot")
                         embeddings_gallery = gr.Gallery(
                             label="Embedding Plots",
                             columns=2,
@@ -228,8 +232,13 @@ class View:
 
             demo.load(self.refresh_status_handler, inputs=[], outputs=[index_status])
 
-        demo.launch(allowed_paths=["/"])
+        demo.launch(**kwargs)
 
 
 if __name__ == "__main__":
-    View().launch()
+    from settings import settings
+
+    View().launch(
+        allowed_paths=["/"],
+        server_port=settings.port,
+    )
