@@ -10,8 +10,6 @@ class View:
     def __init__(self):
         self.app = App()
         self.theme = gr.themes.Default(
-            primary_hue="stone",
-            secondary_hue="neutral",
             text_size="lg",
         )
 
@@ -83,30 +81,60 @@ class View:
     def search_handler(
         self, image: Image.Image, distance_threshold: int | float, top_k: int
     ):
-        """Search similar images."""
+        """Search similar images and return results for display and download."""
         if image is None:
-            return None
+            return None, None
         try:
             distance_threshold = float(distance_threshold)
             top_k = int(top_k)
         except ValueError:
-            return None
+            return None, None
 
         img_rgb = image.convert("RGB")
         img_np = np.array(img_rgb)
+
+        # Call the search function and get the full results dictionary
         results = self.app.search_similar_images(
             img_np, top_k=top_k, distance_threshold=distance_threshold, num_results=9
         )
 
+        # Prepare images for Gradio Gallery display
         images_to_display = [
             (
-                f"{self.app.faiss_index.image_directory}/{r['image_id']}",
+                self.app.get_image_path_from_id(r["image_id"]),
                 f"{r['distance']:.2f}",
             )
             for r in results["results"]
         ]
 
-        return images_to_display
+        # Return the gallery images and the full results dictionary for the state variable
+        return images_to_display, results
+
+    def download_results_handler(self, search_results: dict):
+        """Saves search results to a JSON file and returns the path."""
+        if not search_results or "results" not in search_results:
+            gr.Warning("No search results to download.")
+            return None
+
+        try:
+            filepath = self.app.save_search_results(search_results)
+            return filepath
+        except Exception as e:
+            gr.Error(f"Failed to save JSON: {e}")
+            return None
+
+    def download_images_handler(self, search_results: dict):
+        """Bundles images from search results into a zip file and returns the path."""
+        if not search_results or "results" not in search_results:
+            gr.Warning("No search results to download.")
+            return None
+
+        try:
+            filepath = self.app.save_search_images_to_zip(search_results)
+            return filepath
+        except Exception as e:
+            gr.Error(f"Failed to create zip file: {e}")
+            return None
 
     def plot_embeddings_handler(
         self, index_path: str, metadata_path: str, examples_per_cluster: int = 5
@@ -135,6 +163,7 @@ class View:
 
     def launch(self, **kwargs):
         with gr.Blocks(
+            title="lite",
             css="""
             .main-container {
                 max-width: 900px;
@@ -146,6 +175,8 @@ class View:
         ) as demo:
             # === PAGE 1: Search Tab ===
             with gr.Tab("Indexing & Search"):
+                search_results_state = gr.State()
+
                 with gr.Row(elem_classes="main-container", equal_height=True):
                     with gr.Column():
                         index_status = gr.Textbox(
@@ -179,6 +210,15 @@ class View:
                         top_results_gallery = gr.Gallery(
                             label="Top Results", columns=3, height="auto"
                         )
+
+                        with gr.Row():
+                            download_json_btn = gr.Button("Download Results as JSON")
+                            download_zip_btn = gr.Button("Download Images as ZIP")
+
+                        download_json_file = gr.File(
+                            label="Download JSON", visible=False
+                        )
+                        download_zip_file = gr.File(label="Download ZIP", visible=False)
 
             # === PAGE 2: Visualization Tab ===
             with gr.Tab("Plot Embeddings"):
@@ -221,8 +261,22 @@ class View:
                     distance_threshold_input,
                     topk_results_input,
                 ],
-                outputs=[top_results_gallery],
+                outputs=[top_results_gallery, search_results_state],
             )
+
+            download_json_btn.click(
+                self.download_results_handler,
+                inputs=[search_results_state],
+                outputs=[download_json_file],
+                api_name="download_json",
+            ).then(lambda: gr.File(visible=True), outputs=download_json_file)
+
+            download_zip_btn.click(
+                self.download_images_handler,
+                inputs=[search_results_state],
+                outputs=[download_zip_file],
+                api_name="download_zip",
+            ).then(lambda: gr.File(visible=True), outputs=download_zip_file)
 
             plot_button.click(
                 self.plot_embeddings_handler,
