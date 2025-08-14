@@ -34,13 +34,3 @@ torch = [
 torchvision = [
   { index = "pytorch-cpu" },
 ]
-
-[dependency-groups]
-dev = [
-    "pytest>=8.4.1",
-]
-
-[tool.pytest.ini_options]
-filterwarnings = [
-    "ignore:.*__module__ attribute:DeprecationWarning"
-]
