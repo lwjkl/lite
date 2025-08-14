@@ -138,11 +138,6 @@ async def index_status(request):
     return JSONResponse(request.app.state.app.faiss_index.get_status())
 
 
-async def ui_page(request):
-    file_path = os.path.join(BASE, "ui.html")
-    return FileResponse(file_path)
-
-
 async def plot_embeddings(request):
     form = await request.form()
     index_path = form.get("index_path")
@@ -197,7 +192,6 @@ app = Starlette(
         Route("/index-images", index_images_get, methods=["GET"]),
         Route("/index-images", index_images_post, methods=["POST"]),
         Route("/plot-embeddings", plot_embeddings, methods=["POST"]),
-        Route("/ui", ui_page, methods=["GET"]),
     ],
 )
 
@@ -206,4 +200,6 @@ if __name__ == "__main__":
     import uvicorn
     from config import config
 
-    uvicorn.run("lite.api:app", host=config.host, port=config.port, reload=config.reload)
+    uvicorn.run(
+        "lite.api:app", host=config.host, port=config.port, reload=config.reload
+    )

@@ -9,6 +9,8 @@ import os
 import time
 import torch
 import umap
+import zipfile
+from datetime import datetime
 from matplotlib.lines import Line2D
 from PIL import Image
 
@@ -28,6 +30,10 @@ class App:
             index_path=config.index_path,
         )
         self.model = get_embeder(self.device)
+        self.results_dir = os.path.abspath(
+            getattr(config, "results_dir", "saved_results")
+        )
+        os.makedirs(self.results_dir, exist_ok=True)
         logger.info("Application initialized.")
 
     def embed_image(self, img: np.ndarray):
@@ -88,18 +94,124 @@ class App:
         Search for similar images given an input image.
         """
         vector = self.embed_image(img)
-        filtered_results = self.faiss_index.search(
+        results = self.faiss_index.search(
             vector, k=top_k, distance_threshold=distance_threshold
         )
-        results = [
+        filtered_results = [
             {"image_id": img_id, "distance": dist}
-            for img_id, dist in filtered_results[:num_results]
+            for img_id, dist in results[:num_results]
         ]
-        return {
-            "count_within_threshold": len(filtered_results),
-            "results": results,
-            "full_results": filtered_results,
+
+        # Add metadata to the results
+        search_metadata = {
+            "timestamp": datetime.now().isoformat(),
+            "parameters": {
+                "top_k": top_k,
+                "distance_threshold": distance_threshold,
+                "num_results": num_results,
+            },
+            "index_info": {
+                "image_directory": getattr(self.faiss_index, "image_directory", None),
+                "total_indexed": self.faiss_index.faiss_index.ntotal
+                if hasattr(self.faiss_index, "faiss_index")
+                else 0,
+            },
         }
+
+        return {
+            "count_within_threshold": len(results),
+            "results": filtered_results,
+            "full_results": results,
+            "metadata": search_metadata,
+        }
+
+    def save_search_results(self, search_results: dict, results_name: str = None):
+        """
+        Save search results to a JSON file.
+        """
+        if results_name is None:
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"search_results_{timestamp}.json"
+        else:
+            # Use custom name but ensure .json extension
+            if not results_name.endswith(".json"):
+                results_name += ".json"
+            filename = results_name
+
+        filepath = os.path.join(self.results_dir, filename)
+
+        # Add save metadata
+        save_data = {
+            "saved_at": datetime.now().isoformat(),
+            "filename": filename,
+            "search_results": search_results,
+        }
+
+        try:
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(save_data, f, indent=4, ensure_ascii=False)
+            logger.info(f"Search results saved to {filepath}")
+            return filepath
+        except Exception as e:
+            logger.error(f"Error saving search results: {e}")
+            raise
+
+    def get_image_path_from_id(self, image_id: str):
+        """
+        Helper function to get the full image path from its ID.
+        """
+        image_directory = getattr(self.faiss_index, "image_directory", None)
+        if not image_directory:
+            logger.error("Image directory not found in index metadata.")
+            return None
+        return os.path.join(image_directory, image_id)
+
+    def save_search_images_to_zip(self, search_results: dict, zip_name: str = None):
+        """
+        Bundles and saves the images from search results into a zip file.
+        """
+        if not search_results or "results" not in search_results:
+            logger.error("Invalid search results provided.")
+            return None
+
+        if zip_name is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            zip_filename = f"search_images_{timestamp}.zip"
+        else:
+            if not zip_name.endswith(".zip"):
+                zip_filename += ".zip"
+            zip_filename = zip_name
+
+        zip_filepath = os.path.join(self.results_dir, zip_filename)
+
+        # Check if the indexed images directory exists
+        image_directory = getattr(self.faiss_index, "image_directory", None)
+        if not image_directory or not os.path.isdir(image_directory):
+            logger.error(
+                f"Image directory '{image_directory}' not found. Cannot create zip file."
+            )
+            return None
+
+        try:
+            with zipfile.ZipFile(zip_filepath, "w", zipfile.ZIP_DEFLATED) as zipf:
+                for result in search_results["full_results"]:
+                    image_id = result[0]
+                    source_path = self.get_image_path_from_id(image_id)
+
+                    if os.path.exists(source_path):
+                        # Add file to the zip archive
+                        zipf.write(source_path, arcname=os.path.basename(source_path))
+                        logger.info(f"Added {image_id} to {zip_filename}")
+                    else:
+                        logger.warning(f"Image file not found at {source_path}")
+
+            logger.info(f"Successfully created zip file at {zip_filepath}")
+            return zip_filepath
+
+        except Exception as e:
+            logger.error(f"Error creating zip file: {e}")
+            raise
 
     def save(self):
         """
