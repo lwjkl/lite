@@ -15,17 +15,15 @@ These correspond to the serialized FAISS index (saved locally for persistence) a
 
 ## install
 
-To run the application, clone this repository to your machine, navigate into the project directory, create a virtual environment, and install the dependencies with:
+To run the application, clone this repository to your machine, navigate into the project directory, recommnd using [uv](https://github.com/astral-sh/uv) and run:
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ## run
 
-You can run the application in several method, gradio (gui.py), api (api.py), cli (cli.py), or as a library (main.py).
-
-Refer `settings.py` file for configuration.
+You can run the application with make. Check the makefile for all the option. Check `config.py` file for configuration.
 
 ## usage
 
@@ -39,7 +37,7 @@ Two optional parameters are available when performing a search — you can adjus
 Plotting the embeddings by providing the path to the index and metadata.
 
 > [!NOTE]  
-> You can launch the API and navigate to `/gui` endpoint to access the download result function.
+> You can launch the API and navigate to `/ui` endpoint to access the download result function.
 
 Downloading the results,
 

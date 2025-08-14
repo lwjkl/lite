@@ -17,8 +17,8 @@ from starlette.responses import (
 )
 from contextlib import asynccontextmanager
 
-from main import App
-from logger import logger
+from lite.app import App
+from lite.logger import logger
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
@@ -138,8 +138,8 @@ async def index_status(request):
     return JSONResponse(request.app.state.app.faiss_index.get_status())
 
 
-async def gui_page(request):
-    file_path = os.path.join(BASE, "gui.html")
+async def ui_page(request):
+    file_path = os.path.join(BASE, "ui.html")
     return FileResponse(file_path)
 
 
@@ -197,13 +197,13 @@ app = Starlette(
         Route("/index-images", index_images_get, methods=["GET"]),
         Route("/index-images", index_images_post, methods=["POST"]),
         Route("/plot-embeddings", plot_embeddings, methods=["POST"]),
-        Route("/gui", gui_page, methods=["GET"]),
+        Route("/ui", ui_page, methods=["GET"]),
     ],
 )
 
 
 if __name__ == "__main__":
     import uvicorn
-    from settings import settings
+    from config import config
 
-    uvicorn.run("api:app", host="0.0.0.0", port=settings.port, reload=True)
+    uvicorn.run("lite.api:app", host=config.host, port=config.port, reload=config.reload)

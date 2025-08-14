@@ -12,10 +12,10 @@ import umap
 from matplotlib.lines import Line2D
 from PIL import Image
 
-from index import FaissIndex
-from settings import settings
-from utils import get_embeder, embed
-from logger import logger
+from lite.index import FaissIndex
+from lite.utils import get_embeder, embed
+from lite.logger import logger
+from config import config
 
 
 class App:
@@ -23,9 +23,9 @@ class App:
         logger.info("Initializing...")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.faiss_index = FaissIndex(
-            d=settings.faiss_dim,
-            M=settings.faiss_m,
-            index_path=settings.index_path,
+            d=config.faiss_dim,
+            M=config.faiss_m,
+            index_path=config.index_path,
         )
         self.model = get_embeder(self.device)
         logger.info("Application initialized.")
@@ -74,7 +74,7 @@ class App:
             if vectors:
                 self.faiss_index.insert(vectors, ids)
 
-        self.faiss_index.save_index_and_meta(settings.index_path, image_directory)
+        self.faiss_index.save_index_and_meta(config.index_path, image_directory)
         yield "data: done\n\n"
 
     def search_similar_images(
@@ -107,11 +107,11 @@ class App:
         """
         image_dir = getattr(self.faiss_index, "image_directory", None)
         if image_dir:
-            self.faiss_index.save_index_and_meta(settings.index_path, image_dir)
-            logger.info(f"FAISS index and metadata saved ({settings.index_path})")
+            self.faiss_index.save_index_and_meta(config.index_path, image_dir)
+            logger.info(f"FAISS index and metadata saved ({config.index_path})")
         else:
-            self.faiss_index.save(settings.index_path)
-            logger.info(f"FAISS index saved without metadata ({settings.index_path})")
+            self.faiss_index.save(config.index_path)
+            logger.info(f"FAISS index saved without metadata ({config.index_path})")
 
     def load_faiss_and_metadata(
         self, index_path: str, metadata_path: str, num_embeddings: int = -1

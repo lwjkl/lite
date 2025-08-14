@@ -3,7 +3,7 @@ import logging
 import sys
 from logging.handlers import RotatingFileHandler
 
-from settings import settings
+from config import config
 
 
 class JSONFormatter(logging.Formatter):
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 file_handler = RotatingFileHandler(
-    settings.log_file_path, maxBytes=1024 * 1024, backupCount=5
+    config.log_file_path, maxBytes=1024 * 1024, backupCount=5
 )
 stream_handler = logging.StreamHandler(sys.stdout)
 

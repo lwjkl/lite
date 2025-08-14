@@ -1,0 +1,46 @@
+[project]
+name = "lite"
+version = "0.1.0"
+description = "a lightweight image similarity search application"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "faiss-cpu>=1.12.0",
+    "gradio>=5.42.0",
+    "hdbscan>=0.8.40",
+    "llvmlite>=0.44.0",
+    "matplotlib>=3.10.5",
+    "numba>=0.61.2",
+    "numpy>=2.2.6",
+    "opencv-python>=4.11.0.86",
+    "python-multipart>=0.0.20",
+    "starlette>=0.47.2",
+    "torch>=2.8.0",
+    "torchvision>=0.23.0",
+    "tqdm>=4.67.1",
+    "umap-learn>=0.5.9.post2",
+    "uvicorn>=0.35.0",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu" },
+]
+torchvision = [
+  { index = "pytorch-cpu" },
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:.*__module__ attribute:DeprecationWarning"
+]

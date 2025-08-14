@@ -3,7 +3,7 @@ import gradio as gr
 import numpy as np
 from PIL import Image
 
-from main import App
+from lite.app import App
 
 
 class View:
@@ -240,9 +240,9 @@ class View:
 
 
 if __name__ == "__main__":
-    from settings import settings
+    from config import config
 
     View().launch(
         allowed_paths=["/"],
-        server_port=settings.port,
+        server_port=config.port,
     )
