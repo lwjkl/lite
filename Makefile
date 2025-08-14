@@ -10,20 +10,17 @@ APP_DIR = lite
 api:
 	uv run python -m lite.api
 
-gradio:
-	uv run python -m lite.gradio
+gui:
+	uv run python -m lite.gui
 
 cli:
 	uv run python -m lite.cli $(filter-out $@,$(MAKECMDGOALS))
 
-test:
-	uv run pytest
-
 lint:
-	uv run ruff check .
+	uvx ruff check --fix
 
 format:
-	uv run ruff format .
+	uvx ruff format .
 
 # Prevent make from complaining about extra args
 %:
