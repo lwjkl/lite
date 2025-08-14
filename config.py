@@ -8,4 +8,5 @@ class Config:
     port = 1234
     reload = False
 
+
 config = Config()
