@@ -35,14 +35,3 @@ Two optional parameters are available when performing a search — you can adjus
 - top-k result to search - the number of top results to return, sorted by distance.
 
 Plotting the embeddings by providing the path to the index and metadata.
-
-> [!NOTE]  
-> You can launch the API and navigate to `/ui` endpoint to access the download result function.
-
-Downloading the results,
-
-- To download results as JSON, check the Download Results as JSON box before searching.
-- To download raw images, after clicking the Search button, the top 9 most similar images will be displayed on the right panel. An option will be available below them to download the images as a ZIP file.
-
-> [!IMPORTANT]  
-> You need to start the API before using the application via cli.
