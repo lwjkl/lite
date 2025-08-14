@@ -4,3 +4,4 @@ __pycache__/
 index.faiss*
 .venv/
 api.log*
+saved_results
