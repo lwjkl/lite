@@ -3,7 +3,7 @@ import json
 import numpy as np
 import os
 
-from lite.logger import logger
+from logger import logger
 
 
 class FaissIndex:

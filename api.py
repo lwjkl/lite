@@ -17,8 +17,8 @@ from starlette.responses import (
 )
 from contextlib import asynccontextmanager
 
-from lite.app import App
-from lite.logger import logger
+from app import App
+from logger import logger
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
@@ -200,6 +200,4 @@ if __name__ == "__main__":
     import uvicorn
     from config import config
 
-    uvicorn.run(
-        "lite.api:app", host=config.host, port=config.port, reload=config.reload
-    )
+    uvicorn.run("api:app", host=config.host, port=config.port, reload=config.reload)

@@ -14,9 +14,9 @@ from datetime import datetime
 from matplotlib.lines import Line2D
 from PIL import Image
 
-from lite.index import FaissIndex
-from lite.utils import get_embeder, embed
-from lite.logger import logger
+from index import FaissIndex
+from utils import get_embeder, embed
+from logger import logger
 from config import config
 
 
@@ -30,9 +30,7 @@ class App:
             index_path=config.index_path,
         )
         self.model = get_embeder(self.device)
-        self.results_dir = os.path.abspath(
-            getattr(config, "results_dir", "saved_results")
-        )
+        self.results_dir = os.path.abspath(getattr(config, "results_dir", "results"))
         os.makedirs(self.results_dir, exist_ok=True)
         logger.info("Application initialized.")
 

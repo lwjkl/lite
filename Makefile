@@ -8,13 +8,10 @@ APP_DIR = lite
 .PHONY: api gradio test lint format
 
 api:
-	uv run python -m lite.api
+	uv run api.py
 
 gui:
-	uv run python -m lite.gui
-
-cli:
-	uv run python -m lite.cli $(filter-out $@,$(MAKECMDGOALS))
+	uv run gui.py
 
 lint:
 	uvx ruff check --fix
@@ -25,3 +22,6 @@ format:
 # Prevent make from complaining about extra args
 %:
 	@:
+
+clean:
+	rm -r results/ logs/

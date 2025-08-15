@@ -3,7 +3,7 @@ import gradio as gr
 import numpy as np
 from PIL import Image
 
-from lite.app import App
+from app import App
 
 
 class View:
