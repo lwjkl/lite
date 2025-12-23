@@ -5,3 +5,5 @@ index.faiss*
 .venv/
 logs/
 results/
+.vscode
+.DS_Store

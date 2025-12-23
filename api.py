@@ -24,7 +24,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 
 
 @asynccontextmanager
-async def lifespan(app):
+async def lifespan(app: Starlette):
     logger.info("Starting app lifespan: initializing app instance.")
     app.state.app = App()
     yield
@@ -34,7 +34,7 @@ async def lifespan(app):
 async def index_images_get(request):
     query = request.query_params
     image_directory = query.get("image_directory")
-    wildcard = query.get("wildcard", "*.JPG")
+    wildcard = query.get("wildcard", "*")
     batch_size = int(query.get("batch_size", 64))
 
     if not image_directory:
@@ -55,7 +55,7 @@ async def index_images_post(request):
         return JSONResponse({"detail": "Invalid JSON"}, status_code=400)
 
     image_directory = body.get("image_directory")
-    wildcard = body.get("wildcard", "*.JPG")
+    wildcard = body.get("wildcard", "*")
     batch_size = int(body.get("batch_size", 64))
 
     if not image_directory:
@@ -90,6 +90,8 @@ async def search_similar(request):
     result = request.app.state.app.search_similar_images(
         img, top_k=top_k, distance_threshold=distance_threshold, num_results=num_results
     )
+
+    print(result)
 
     return JSONResponse(result)
 
@@ -168,6 +170,11 @@ async def root(request):
     return JSONResponse({"message": "Local Image Similarity Service"})
 
 
+async def ui_page(request):
+    file_path = os.path.join(BASE, "ui.html")
+    return FileResponse(file_path)
+
+
 warnings.filterwarnings(
     "ignore",
     message="xFormers is not available",
@@ -192,6 +199,7 @@ app = Starlette(
         Route("/index-images", index_images_get, methods=["GET"]),
         Route("/index-images", index_images_post, methods=["POST"]),
         Route("/plot-embeddings", plot_embeddings, methods=["POST"]),
+        Route("/ui", ui_page, methods=["GET"]),
     ],
 )
 

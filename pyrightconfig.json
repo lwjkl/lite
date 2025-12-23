@@ -1,0 +1,15 @@
+{
+  "typeCheckingMode": "basic",
+
+  "reportUnusedImport": "none",
+
+  "reportUnknownMemberType": "none",
+
+  "reportMissingTypeStubs": "none",
+
+  "reportUnannotatedClassAttribute": "none",
+
+  "reportUnknownParameterType": "none",
+
+  "reportAttributeAccessIssue": "none"
+}

@@ -1,13 +1,14 @@
-import faiss
 import json
-import numpy as np
 import os
+
+import faiss
+import numpy as np
 
 from logger import logger
 
 
 class FaissIndex:
-    def __init__(self, d: int = 384, M: int = 32, index_path: str = None):
+    def __init__(self, d: int = 384, M: int = 32, index_path: str | None = None):
         self.d = d
         self.M = M
         self.index_path = index_path

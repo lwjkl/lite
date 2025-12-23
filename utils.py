@@ -3,7 +3,9 @@ import torch
 import torchvision.transforms.v2 as T
 
 
-def embed(image: np.ndarray, model: torch.nn.Module, device: str = "cpu") -> np.ndarray:
+def embed(
+    image: np.ndarray, model: torch.nn.Module, device: str | torch.device = "cpu"
+) -> np.ndarray:
     transform = T.Compose(
         [
             T.Resize(size=(224, 224)),
@@ -11,18 +13,18 @@ def embed(image: np.ndarray, model: torch.nn.Module, device: str = "cpu") -> np.
             T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ]
     )
-    image = torch.from_numpy(image).permute(2, 0, 1)
-    transformed = transform(image).unsqueeze(0).to(device)
+    tensor_image = torch.from_numpy(image).permute(2, 0, 1)
+    transformed = transform(tensor_image).unsqueeze(0).to(device)
 
     with torch.no_grad():
         logit = model(transformed)
 
-    embedding = logit.cpu().numpy()
+    embedding = logit.squeeze(0).cpu().numpy()
 
-    return embedding[0]
+    return embedding
 
 
-def get_embeder(device="cpu"):
+def get_embeder(device: str | torch.device = "cpu"):
     model = torch.hub.load("facebookresearch/dinov2", "dinov2_vits14")
     model = model.to(device)
     model.eval()

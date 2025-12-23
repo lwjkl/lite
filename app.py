@@ -1,23 +1,24 @@
+import io
+import json
+import os
+import time
+import zipfile
+from datetime import datetime
+
 import cv2
 import faiss
 import hdbscan
-import io
-import json
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-import time
 import torch
 import umap
-import zipfile
-from datetime import datetime
 from matplotlib.lines import Line2D
 from PIL import Image
 
-from index import FaissIndex
-from utils import get_embeder, embed
-from logger import logger
 from config import config
+from index import FaissIndex
+from logger import logger
+from utils import embed, get_embeder
 
 
 class App:
@@ -123,7 +124,9 @@ class App:
             "metadata": search_metadata,
         }
 
-    def save_search_results(self, search_results: dict, results_name: str = None):
+    def save_search_results(
+        self, search_results: dict, results_name: str | None = None
+    ):
         """
         Save search results to a JSON file.
         """
@@ -155,17 +158,19 @@ class App:
             logger.error(f"Error saving search results: {e}")
             raise
 
-    def get_image_path_from_id(self, image_id: str):
+    def get_image_path_from_id(self, image_id: str) -> str:
         """
         Helper function to get the full image path from its ID.
         """
         image_directory = getattr(self.faiss_index, "image_directory", None)
         if not image_directory:
             logger.error("Image directory not found in index metadata.")
-            return None
+            return ""
         return os.path.join(image_directory, image_id)
 
-    def save_search_images_to_zip(self, search_results: dict, zip_name: str = None):
+    def save_search_images_to_zip(
+        self, search_results: dict, zip_name: str | None = None
+    ):
         """
         Bundles and saves the images from search results into a zip file.
         """
@@ -252,8 +257,8 @@ class App:
         cluster_umap_random_state: int = 42,
         hdbscan_min_samples: int = 10,
         hdbscan_min_cluster_size: int = 30,
-        plot_umap_neighbors: int = None,
-        plot_umap_min_dist: int | float = None,
+        plot_umap_neighbors: int | None = None,
+        plot_umap_min_dist: int | float | None = None,
         plot_umap_n_components: int = 2,
         plot_umap_random_state: int = 42,
         umap_n_jobs: int = 1,
@@ -285,7 +290,7 @@ class App:
             n_jobs=umap_n_jobs,
         ).fit_transform(embeddings)
 
-        return plot_embedding, labels
+        return plot_embedding.toarray(), labels
 
     def set_style(self):
         plt.rcParams.update(
@@ -355,7 +360,7 @@ class App:
         self,
         standard_embedding: np.ndarray,
         labels: np.ndarray,
-        image_paths: str,
+        image_paths: list[str],
         examples_per_cluster: int = 5,
     ):
         unique_labels = np.unique(labels)
@@ -481,8 +486,9 @@ class App:
             closest_indices = np.argsort(distances)[:examples_per_cluster]
 
             for col_idx, idx in enumerate(closest_indices):
+                cur_image_path = str(cluster_paths[idx])
                 ax_img = axes[row_idx, col_idx]
-                img = Image.open(cluster_paths[idx]).convert("RGB")
+                img = Image.open(cur_image_path).convert("RGB")
                 ax_img.imshow(img)
                 ax_img.axis("off")
 
@@ -497,7 +503,7 @@ class App:
                 va="center",
             )
 
-        fig_examples.tight_layout(rect=[0.08, 0, 1, 1])
+        fig_examples.tight_layout(rect=(0.08, 0.0, 1.0, 1.0))
 
         return fig_scatter, fig_examples
 

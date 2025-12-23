@@ -6,7 +6,7 @@ class Config:
     log_file_path = "logs/api.log"
     host = "0.0.0.0"
     port = 1234
-    reload = False
+    reload = True
 
 
 config = Config()
