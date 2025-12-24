@@ -1,0 +1,6 @@
+[rules]
+possibly-missing-attribute = "ignore"
+invalid-assignment = "ignore"
+missing-argument = "ignore"
+unresolved-attribute = "ignore"
+invalid-parameter-default = "ignore"
