@@ -183,8 +183,9 @@ class App:
             zip_filename = f"search_images_{timestamp}.zip"
         else:
             if not zip_name.endswith(".zip"):
-                zip_filename += ".zip"
-            zip_filename = zip_name
+                zip_filename = zip_name + ".zip"
+            else:
+                zip_filename = zip_name
 
         zip_filepath = os.path.join(self.results_dir, zip_filename)
 
@@ -231,7 +232,7 @@ class App:
     def load_faiss_and_metadata(
         self, index_path: str, metadata_path: str, num_embeddings: int = -1
     ):
-        index = faiss.read_index(index_path)
+        index = faiss.read_index(index_path)  # ty:ignore[possibly-missing-attribute]
         metadata = json.load(open(metadata_path))
         image_root_path = metadata.get("image_directory")
         id_to_path = metadata.get("int_to_str")
