@@ -23,7 +23,7 @@ uv sync
 
 ## run
 
-You can run the application with make. Check the makefile for all the option. Check `config.py` file for configuration.
+You can start the server with simply `python api.py`. Access via web UI at /ui endpoint or API endpoints. Check `config.py` file for configuration.
 
 ## usage
 
